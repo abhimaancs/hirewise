@@ -21,9 +21,20 @@ function SignupForm() {
   const supabase = createClient()
 
   const handleSubmit = async () => {
+    if (!form.name || !form.email || !form.password) {
+      setError('Please fill in all fields')
+      return
+    }
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters')
+      return
+    }
+
     setLoading(true)
     setError('')
+
     try {
+      // Step 1 — Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
@@ -31,35 +42,50 @@ function SignupForm() {
       if (authError) throw authError
 
       const userId = authData.user?.id
-      if (!userId) throw new Error('User creation failed')
+      if (!userId) throw new Error('User creation failed — please try again')
 
-      // Insert into profiles
+      // Step 2 — Insert into profiles
       const { error: profileError } = await supabase.from('profiles').insert({
-        id: userId, role, name: form.name, email: form.email
+        id: userId,
+        role,
+        name: form.name,
+        email: form.email
       })
-      if (profileError) throw profileError
+      if (profileError) throw new Error('Profile creation failed: ' + profileError.message)
 
-      // Insert role-specific details
+      // Step 3 — Insert role-specific profile
       if (role === 'candidate') {
-        await supabase.from('candidate_profiles').insert({
-          id: userId, college: form.college, skills: [], experience_years: 0, location: form.location
+        const { error: candidateError } = await supabase.from('candidate_profiles').insert({
+          id: userId,
+          college: form.college || '',
+          skills: [],
+          experience_years: 0,
+          location: form.location || ''
         })
+        if (candidateError) throw new Error('Candidate profile failed: ' + candidateError.message)
         router.push('/profile?new=true')
       } else {
-        await supabase.from('company_profiles').insert({
-          id: userId, company_name: form.company_name, location: form.location
+        const { error: companyError } = await supabase.from('company_profiles').insert({
+          id: userId,
+          company_name: form.company_name || form.name,
+          location: form.location || ''
         })
+        if (companyError) throw new Error('Company profile failed: ' + companyError.message)
         router.push('/company/jobs?new=true')
       }
+
+      router.refresh()
+
     } catch (err: any) {
-      setError(err.message || 'Something went wrong')
+      console.error('Signup error:', err)
+      setError(err.message || 'Something went wrong. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
   const s = {
-    card: { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.5rem' },
+    card: { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.5rem' } as React.CSSProperties,
     label: { display: 'block', fontSize: '0.8rem', color: 'var(--muted)', marginBottom: '0.4rem' } as React.CSSProperties,
     group: { marginBottom: '1rem' } as React.CSSProperties,
   }
@@ -97,49 +123,64 @@ function SignupForm() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           <div style={s.group}>
             <label style={s.label}>Full name</label>
-            <input placeholder="Abhi B." value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+            <input placeholder="Abhi B." value={form.name}
+              onChange={e => setForm({ ...form, name: e.target.value })} />
           </div>
           <div style={s.group}>
             <label style={s.label}>Location</label>
-            <input placeholder="Chennai, India" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} />
+            <input placeholder="Chennai, India" value={form.location}
+              onChange={e => setForm({ ...form, location: e.target.value })} />
           </div>
         </div>
 
         <div style={s.group}>
           <label style={s.label}>Email</label>
-          <input type="email" placeholder="you@email.com" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+          <input type="email" placeholder="you@email.com" value={form.email}
+            onChange={e => setForm({ ...form, email: e.target.value })} />
         </div>
 
         <div style={s.group}>
-          <label style={s.label}>Password</label>
-          <input type="password" placeholder="Min. 6 characters" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
+          <label style={s.label}>Password (min 6 characters)</label>
+          <input type="password" placeholder="••••••••" value={form.password}
+            onChange={e => setForm({ ...form, password: e.target.value })}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
         </div>
 
         {role === 'candidate' ? (
           <div style={s.group}>
             <label style={s.label}>College / University</label>
-            <input placeholder="e.g. Anna University, Chennai" value={form.college} onChange={e => setForm({ ...form, college: e.target.value })} />
+            <input placeholder="Anna University, Chennai" value={form.college}
+              onChange={e => setForm({ ...form, college: e.target.value })} />
           </div>
         ) : (
           <div style={s.group}>
             <label style={s.label}>Company name</label>
-            <input placeholder="e.g. Acme Corp" value={form.company_name} onChange={e => setForm({ ...form, company_name: e.target.value })} />
+            <input placeholder="e.g. Acme Corp" value={form.company_name}
+              onChange={e => setForm({ ...form, company_name: e.target.value })} />
           </div>
         )}
 
         {error && (
-          <p style={{ color: '#f87171', fontSize: '0.8rem', marginBottom: '0.75rem' }}>{error}</p>
+          <div style={{
+            background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)',
+            borderRadius: '8px', padding: '0.625rem 0.875rem',
+            color: '#f87171', fontSize: '0.8rem', marginBottom: '0.75rem'
+          }}>
+            {error}
+          </div>
         )}
 
         <button onClick={handleSubmit} disabled={loading} style={{
           width: '100%', padding: '0.75rem', background: 'var(--accent)',
           border: 'none', borderRadius: '8px', color: '#fff',
-          fontSize: '0.9rem', fontWeight: 500, cursor: loading ? 'not-allowed' : 'pointer',
-          fontFamily: 'var(--font-dm)', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', gap: '8px', opacity: loading ? 0.7 : 1
+          fontSize: '0.9rem', fontWeight: 500,
+          cursor: loading ? 'not-allowed' : 'pointer',
+          fontFamily: 'var(--font-dm)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          gap: '8px', opacity: loading ? 0.7 : 1
         }}>
           {loading && <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />}
-          {loading ? 'Creating account...' : 'Create account — AI matches you instantly'}
+          {loading ? 'Creating account...' : 'Create account'}
         </button>
 
         <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--muted)', marginTop: '1rem' }}>
