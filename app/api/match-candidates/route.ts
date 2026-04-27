@@ -48,6 +48,8 @@ Experience: ${c.experience_years ?? 0}
       )
 
       const data = await res.json()
+      console.log("RAW GEMINI:", JSON.stringify(data, null, 2))
+      console.log("RAW TEXT:", text)
 
       console.log("FULL RESPONSE:", JSON.stringify(data, null, 2))
 
