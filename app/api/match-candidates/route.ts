@@ -5,18 +5,11 @@ export async function POST(req: NextRequest) {
     const { job, candidates } = await req.json()
 
     if (!job || !candidates?.length) {
-      return NextResponse.json(
-        { error: 'Missing job or candidates' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Missing data' }, { status: 400 })
     }
 
-const prompt = `
-You are a strict JSON generator.
-
-Analyze candidates and return ONLY a JSON array.
-
-DO NOT write anything else.
+    const prompt = `
+Return ONLY a JSON array.
 
 Format:
 [
@@ -42,38 +35,42 @@ Experience: ${c.experience_years ?? 0}
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-  contents: [{ parts: [{ text: prompt }] }],
-  generationConfig: {
-    
-    temperature: 0.2
-  }
-})
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.1,
+            response_mime_type: "application/json"
+          }
+        })
       }
     )
 
-    const data = await res.json()
-console.log("FULL RESPONSE:", JSON.stringify(data, null, 2))
+    if (!res.ok) {
+      const err = await res.text()
+      console.error("Gemini Error:", res.status, err)
+      throw new Error("Gemini API failed")
+    }
 
-    // 🔍 Extract text safely
+    const data = await res.json()
+
+    console.log("🔥 FULL GEMINI RESPONSE:", JSON.stringify(data, null, 2))
+
+    const candidate = data?.candidates?.[0]
+
     let text = ''
 
-// ✅ Case 1: JSON response (when response_mime_type is used)
-if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-  text = data.candidates[0].content.parts[0].text
-}
+    // ✅ Try extracting text safely
+    if (candidate?.content?.parts) {
+      text = candidate.content.parts
+        .map((p: any) => p.text || '')
+        .join('')
+        .trim()
+    }
 
-// ✅ Case 2: Sometimes Gemini returns direct JSON
-if (!text && data?.candidates?.[0]?.content) {
-  try {
-    text = JSON.stringify(data.candidates[0].content)
-  } catch {}
-}
-
-    console.log("AI TEXT:", text)
-
-    // ❌ If AI gives nothing → fallback immediately
+    // ❌ If empty → fallback
     if (!text) {
+      console.warn("Empty AI response")
+
       return NextResponse.json({
         matches: candidates.map((c: any) => ({
           job: c,
@@ -83,23 +80,15 @@ if (!text && data?.candidates?.[0]?.content) {
       })
     }
 
-    // 🧹 Clean response
-    const cleaned = text.replace(/```json|```/g, '').trim()
-
     let scores: any = null
 
     try {
-      scores = JSON.parse(cleaned)
+      scores = JSON.parse(text)
     } catch {
-      const match = cleaned.match(/\[[\s\S]*\]/)
-      if (match) {
-        try {
-          scores = JSON.parse(match[0])
-        } catch {}
-      }
+      console.error("JSON parse failed:", text)
     }
 
-    // ❌ If still invalid → fallback
+    // ❌ If invalid → fallback
     if (!Array.isArray(scores)) {
       return NextResponse.json({
         matches: candidates.map((c: any) => ({
@@ -111,21 +100,23 @@ if (!text && data?.candidates?.[0]?.content) {
     }
 
     // ✅ Map results
-    const matches = scores.map((score: any) => ({
-      job: candidates.find((c: any) => c.id === score.candidate_id),
-      match_score: score.match_score,
-      match_reason: score.match_reason
-    }))
+    const matches = scores
+      .map((score: any) => ({
+        job: candidates.find((c: any) => c.id === score.candidate_id),
+        match_score: score.match_score,
+        match_reason: score.match_reason
+      }))
+      .filter((m: any) => m.job)
+      .sort((a: any, b: any) => b.match_score - a.match_score)
 
     return NextResponse.json({ matches })
 
   } catch (error: any) {
-    console.error("FINAL ERROR:", error)
+    console.error("SERVER ERROR:", error)
 
-    // ✅ Absolute fallback (never crash)
-    return NextResponse.json({
-      matches: [],
-      error: "Something went wrong, but app is safe"
-    })
+    return NextResponse.json(
+      { matches: [], error: error.message },
+      { status: 500 }
+    )
   }
 }
