@@ -58,7 +58,8 @@ Format:
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            response_mime_type: "application/json"
+            response_mime_type: 'application/json',
+            temperature: 0.2
           }
         })
       }
@@ -66,38 +67,69 @@ Format:
 
     const data = await res.json()
 
-    // 🔍 Extract text safely from Gemini response
+    // 🧠 DEBUG (keep during development)
+    console.log("FULL GEMINI RESPONSE:", JSON.stringify(data, null, 2))
+
+    // 🔍 Extract text safely
     const parts = data?.candidates?.[0]?.content?.parts || []
     const text = parts.map((p: any) => p.text || '').join('').trim()
 
     if (!text) {
-      console.error("EMPTY GEMINI RESPONSE:", data)
+      console.error("EMPTY TEXT FROM AI:", data)
       throw new Error("Empty response from AI")
     }
 
-    // 🧹 Clean markdown if present
+    console.log("RAW AI TEXT:", text)
+
+    // 🧹 Clean markdown
     const cleaned = text.replace(/```json|```/g, '').trim()
 
-    let scores
+    let scores: any = null
 
+    // ✅ Attempt 1: direct parse
     try {
-      // ✅ Try parsing directly
       scores = JSON.parse(cleaned)
-    } catch {
-      // 🔁 Fallback: extract JSON array manually
-      const jsonMatch = cleaned.match(/\[[\s\S]*\]/)
-
-      if (!jsonMatch) {
-        console.error("RAW GEMINI RESPONSE:", cleaned)
-        throw new Error('No JSON array found in response')
-      }
-
-      scores = JSON.parse(jsonMatch[0])
+    } catch (err) {
+      console.warn("Direct JSON parse failed")
     }
 
+    // ✅ Attempt 2: object wrapping (common Gemini issue)
+    if (scores && !Array.isArray(scores) && typeof scores === 'object') {
+      const possibleArray =
+        scores.results ||
+        scores.candidates ||
+        scores.data ||
+        Object.values(scores).find((v) => Array.isArray(v))
+
+      if (Array.isArray(possibleArray)) {
+        scores = possibleArray
+      }
+    }
+
+    // ✅ Attempt 3: regex extraction fallback
     if (!Array.isArray(scores)) {
-      console.error("INVALID FORMAT:", scores)
-      throw new Error("Response is not an array")
+      const match = cleaned.match(/\[[\s\S]*\]/)
+
+      if (match) {
+        try {
+          scores = JSON.parse(match[0])
+        } catch (err) {
+          console.error("Regex parse failed:", match[0])
+        }
+      }
+    }
+
+    // ❌ FINAL FAIL SAFE
+    if (!Array.isArray(scores)) {
+      console.error("FINAL BAD RESPONSE:", cleaned)
+
+      return NextResponse.json(
+        {
+          error: 'AI returned invalid format',
+          raw: cleaned
+        },
+        { status: 500 }
+      )
     }
 
     // 🔗 Map scores to candidates
