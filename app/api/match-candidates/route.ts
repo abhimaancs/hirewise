@@ -11,34 +11,44 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const prompt = `You are an expert recruiter.
+const prompt = `
+You are a strict JSON generator.
 
-Score candidates for this job.
+Analyze candidates and return ONLY a JSON array.
 
-JOB:
-${job.title}
-Skills: ${job.required_skills?.join(', ')}
+DO NOT write anything else.
 
-CANDIDATES:
+Format:
+[
+  {
+    "candidate_id": "string",
+    "match_score": number,
+    "match_reason": "short reason"
+  }
+]
+
+Job Skills: ${job.required_skills?.join(', ')}
+
+Candidates:
 ${candidates.map((c: any) => `
 ID: ${c.id}
 Skills: ${c.skills?.join(', ') || 'none'}
 Experience: ${c.experience_years ?? 0}
 `).join('\n')}
-
-Return ONLY JSON array like:
-[
- { "candidate_id": "1", "match_score": 80, "match_reason": "Good fit" }
-]`
+`
 
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GOOGLE_AI_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        })
+    body: JSON.stringify({
+  contents: [{ parts: [{ text: prompt }] }],
+  generationConfig: {
+    response_mime_type: "application/json",
+    temperature: 0.2
+  }
+})
       }
     )
 
