@@ -47,7 +47,9 @@ Return ONLY a valid JSON array, no markdown:
     const data = await res.json()
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
     const cleaned = text.replace(/```json|```/g, '').trim()
-    const scores = JSON.parse(cleaned)
+const jsonMatch = cleaned.match(/\[[\s\S]*\]/)
+if (!jsonMatch) throw new Error('No JSON array found in response: ' + cleaned)
+const scores = JSON.parse(jsonMatch[0])
 
     const matches = scores
       .map((score: any) => ({
