@@ -2,16 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const { job, candidates } = await req.json()
+    const body = await req.json()
+    const job = body.job
+    const candidates = body.candidates
 
-    if (!job || !candidates?.length) {
+    if (!job || !Array.isArray(candidates) || candidates.length === 0) {
       return NextResponse.json({ error: 'Missing data' }, { status: 400 })
     }
 
     const prompt = `
 Return ONLY a JSON array.
-
-Use EXACT candidate_id from input.
 
 Format:
 [
@@ -48,17 +48,20 @@ Experience: ${c.experience_years ?? 0}
       )
 
       const data = await res.json()
-      console.log("RAW GEMINI:", JSON.stringify(data, null, 2))
-      console.log("RAW TEXT:", text)
 
       console.log("FULL RESPONSE:", JSON.stringify(data, null, 2))
 
-      const text = data?.candidates?.[0]?.content?.parts
-        ?.map((p: any) => p.text || '')
-        .join('')
-        .trim()
-
-      console.log("AI TEXT:", text)
+      const text =
+        data &&
+        data.candidates &&
+        data.candidates[0] &&
+        data.candidates[0].content &&
+        data.candidates[0].content.parts
+          ? data.candidates[0].content.parts
+              .map((p: any) => p.text || '')
+              .join('')
+              .trim()
+          : ''
 
       if (text) {
         try {
@@ -72,29 +75,26 @@ Experience: ${c.experience_years ?? 0}
       }
 
     } catch (err) {
-      console.error("AI FAILED:", err)
+      console.error("AI ERROR:", err)
     }
 
-    // 🛡️ HARD FALLBACK (THIS FIXES YOUR ISSUE)
-    if (!Array.isArray(scores) || scores.length === 0) {
-      console.warn("Using fallback scoring")
-
-      scores = candidates.map((c: any, index: number) => ({
+    // fallback
+    if (!Array.isArray(scores)) {
+      scores = candidates.map((c: any, i: number) => ({
         candidate_id: c.id,
-        match_score: 60 - index * 5, // simple ranking
+        match_score: 60 - i * 5,
         match_reason: "Fallback scoring"
       }))
     }
 
-    // ✅ ALWAYS MAP (NO FILTER → NO EMPTY)
-    const matches = scores.map((score: any, index: number) => {
+    const matches = scores.map((score: any, i: number) => {
       const matched = candidates.find(
         (c: any) => String(c.id) === String(score.candidate_id)
       )
 
       return {
-        job: matched || candidates[index] || candidates[0],
-        match_score: score.match_score ?? 50,
+        job: matched || candidates[i] || candidates[0],
+        match_score: score.match_score || 50,
         match_reason: score.match_reason || "No reason"
       }
     })
@@ -103,11 +103,6 @@ Experience: ${c.experience_years ?? 0}
 
   } catch (error: any) {
     console.error("SERVER ERROR:", error)
-
-    // 🔥 FINAL SAFETY (NEVER EMPTY)
-    return NextResponse.json({
-      matches: [],
-      error: error.message
-    })
+    return NextResponse.json({ matches: [], error: error.message })
   }
 }
