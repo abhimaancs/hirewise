@@ -63,21 +63,31 @@ Experience: ${c.experience_years ?? 0}
 
       // 🔥 FIXED PARSING (handles messy AI output)
       if (text) {
-        const cleaned = text
-          .replace(/```json/g, '')
-          .replace(/```/g, '')
-          .trim()
+  try {
+    // 1️⃣ Try direct parse
+    scores = JSON.parse(text)
+  } catch {
+    try {
+      // 2️⃣ Remove markdown + retry
+      const cleaned = text
+        .replace(/```json/g, '')
+        .replace(/```/g, '')
+        .trim()
 
-        const match = cleaned.match(/\[[\s\S]*\]/)
-
-        if (match) {
-          try {
-            scores = JSON.parse(match[0])
-          } catch (err) {
-            console.error("PARSE ERROR:", err)
-          }
+      scores = JSON.parse(cleaned)
+    } catch {
+      // 3️⃣ Extract JSON array from messy text
+      const match = text.match(/\[[\s\S]*\]/)
+      if (match) {
+        try {
+          scores = JSON.parse(match[0])
+        } catch (err) {
+          console.error("FINAL PARSE FAIL:", err)
         }
       }
+    }
+  }
+}
 
     } catch (err) {
       console.error("AI ERROR:", err)
