@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
 
     const prompt = `You are an expert technical recruiter. Score how well each candidate matches this job.
 
+
 JOB:
 Title: ${job.title}
 Required Skills: ${job.required_skills?.join(', ')}
