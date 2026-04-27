@@ -8,8 +8,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing data' }, { status: 400 })
     }
 
+    // ✅ Better prompt (forces correct scoring)
     const prompt = `
 Return ONLY a JSON array.
+
+IMPORTANT:
+- match_score MUST be between 0 and 100 (integer)
+- Do NOT return decimals like 0.8
 
 Format:
 [
@@ -38,9 +43,9 @@ Experience: ${c.experience_years ?? 0}
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "openrouter/auto", // picks free model
+        model: "openrouter/auto",
         messages: [
-          { role: "system", content: "You return only valid JSON." },
+          { role: "system", content: "You return ONLY valid JSON array." },
           { role: "user", content: prompt }
         ],
         temperature: 0.2
@@ -82,7 +87,7 @@ Experience: ${c.experience_years ?? 0}
       }
     }
 
-    // ⚠️ fallback if AI fails
+    // ⚠️ Fallback if AI fails
     if (!Array.isArray(scores)) {
       console.warn("⚠️ Using fallback scoring")
 
@@ -93,22 +98,34 @@ Experience: ${c.experience_years ?? 0}
           ).length || 0
 
         return {
-          candidate_id: c.id,
+          candidate_id: String(c.id),
           match_score: Math.min(100, 50 + skillMatch * 10),
           match_reason: "Skill-based fallback"
         }
       })
     }
 
+    // ✅ FINAL mapping (FIXED SCORE ISSUE HERE)
     const matches = scores
       .map((score: any, i: number) => {
         const matched = candidates.find(
           (c: any) => String(c.id) === String(score.candidate_id)
         )
 
+        // 🔥 FIX: normalize score
+        let finalScore = Number(score.match_score) || 50
+
+        // convert 0–1 → 0–100
+        if (finalScore <= 1) {
+          finalScore = finalScore * 100
+        }
+
+        // clamp
+        finalScore = Math.max(0, Math.min(100, finalScore))
+
         return {
           job: matched || candidates[i] || candidates[0],
-          match_score: score.match_score || 50,
+          match_score: Math.round(finalScore),
           match_reason: score.match_reason || "No reason"
         }
       })
