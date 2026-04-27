@@ -2,17 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const job = body.job
-    const candidates = body.candidates
+    const { job, candidates } = await req.json()
 
-    if (!job || !Array.isArray(candidates) || candidates.length === 0) {
+    if (!job || !candidates?.length) {
       return NextResponse.json({ error: 'Missing data' }, { status: 400 })
     }
 
     const prompt = `
 Return ONLY a JSON array.
-Do NOT include any explanation.
 
 Format:
 [
@@ -33,70 +30,36 @@ Experience: ${c.experience_years ?? 0}
 `).join('\n')}
 `
 
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: "You output only valid JSON." },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.2
+      })
+    })
+
+    const data = await res.json()
+
+    const text = data?.choices?.[0]?.message?.content || ""
+
     let scores: any = null
 
     try {
-      const res = await fetch(
-  `https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=${process.env.GOOGLE_AI_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.1 }
-          })
-        }
-      )
-
-      const data = await res.json()
-
-      console.log("🔥 FULL RESPONSE:", JSON.stringify(data, null, 2))
-
-      // 🔍 Extract text safely
-      const text =
-        data?.candidates?.[0]?.content?.parts
-          ?.map((p: any) => p.text || '')
-          .join('')
-          .trim() || ''
-
-      console.log("🧠 RAW TEXT:", text)
-
-      // 🔥 FIXED PARSING (handles messy AI output)
-      if (text) {
-  try {
-    // 1️⃣ Try direct parse
-    scores = JSON.parse(text)
-  } catch {
-    try {
-      // 2️⃣ Remove markdown + retry
-      const cleaned = text
-        .replace(/```json/g, '')
-        .replace(/```/g, '')
-        .trim()
-
-      scores = JSON.parse(cleaned)
+      scores = JSON.parse(text)
     } catch {
-      // 3️⃣ Extract JSON array from messy text
       const match = text.match(/\[[\s\S]*\]/)
-      if (match) {
-        try {
-          scores = JSON.parse(match[0])
-        } catch (err) {
-          console.error("FINAL PARSE FAIL:", err)
-        }
-      }
-    }
-  }
-}
-
-    } catch (err) {
-      console.error("AI ERROR:", err)
+      if (match) scores = JSON.parse(match[0])
     }
 
-    // 🛡️ fallback if AI fails
-    if (!Array.isArray(scores) || scores.length === 0) {
-      console.warn("⚠️ Using fallback scoring")
-
+    if (!Array.isArray(scores)) {
       scores = candidates.map((c: any, i: number) => ({
         candidate_id: c.id,
         match_score: 60 - i * 5,
@@ -104,7 +67,6 @@ Experience: ${c.experience_years ?? 0}
       }))
     }
 
-    // ✅ map results safely
     const matches = scores.map((score: any, i: number) => {
       const matched = candidates.find(
         (c: any) => String(c.id) === String(score.candidate_id)
@@ -112,7 +74,7 @@ Experience: ${c.experience_years ?? 0}
 
       return {
         job: matched || candidates[i] || candidates[0],
-        match_score: score.match_score ?? 50,
+        match_score: score.match_score || 50,
         match_reason: score.match_reason || "No reason"
       }
     })
@@ -120,11 +82,7 @@ Experience: ${c.experience_years ?? 0}
     return NextResponse.json({ matches })
 
   } catch (error: any) {
-    console.error("SERVER ERROR:", error)
-
-    return NextResponse.json({
-      matches: [],
-      error: error.message
-    })
+    console.error(error)
+    return NextResponse.json({ matches: [], error: error.message })
   }
 }
