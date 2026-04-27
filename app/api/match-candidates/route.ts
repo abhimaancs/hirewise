@@ -8,7 +8,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing data' }, { status: 400 })
     }
 
-    // 🧠 Prompt
     const prompt = `
 Return ONLY a JSON array.
 
@@ -31,34 +30,34 @@ Experience: ${c.experience_years ?? 0}
 `).join('\n')}
 `
 
-    // 🤖 OpenAI API (NEW Responses API)
-    const res = await fetch("https://api.openai.com/v1/responses", {
+    // 🔥 OpenRouter API
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        input: prompt,
-      }),
+        model: "openrouter/auto", // picks free model
+        messages: [
+          { role: "system", content: "You return only valid JSON." },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.2
+      })
     })
 
     const data = await res.json()
 
-    console.log("🔥 FULL OPENAI RESPONSE:", JSON.stringify(data, null, 2))
+    console.log("🔥 OPENROUTER RESPONSE:", JSON.stringify(data, null, 2))
 
-    // 📥 Extract AI text
-    let text =
-      data?.output?.[0]?.content?.[0]?.text ||
-      data?.output_text || 
-      ""
+    const text = data?.choices?.[0]?.message?.content || ""
 
     console.log("🧠 AI TEXT:", text)
 
     let scores: any = null
 
-    // 🧹 Robust JSON parsing
+    // 🧹 Robust parsing
     if (text) {
       try {
         scores = JSON.parse(text)
@@ -76,14 +75,14 @@ Experience: ${c.experience_years ?? 0}
             try {
               scores = JSON.parse(match[0])
             } catch (err) {
-              console.error("❌ FINAL PARSE FAIL:", err)
+              console.error("❌ PARSE FAIL:", err)
             }
           }
         }
       }
     }
 
-    // 🛑 Fallback if AI fails
+    // ⚠️ fallback if AI fails
     if (!Array.isArray(scores)) {
       console.warn("⚠️ Using fallback scoring")
 
@@ -101,7 +100,6 @@ Experience: ${c.experience_years ?? 0}
       })
     }
 
-    // 🔗 Map results to candidates
     const matches = scores
       .map((score: any, i: number) => {
         const matched = candidates.find(
@@ -119,11 +117,11 @@ Experience: ${c.experience_years ?? 0}
     return NextResponse.json({ matches })
 
   } catch (error: any) {
-    console.error("💥 SERVER ERROR:", error)
+    console.error("💥 ERROR:", error)
 
     return NextResponse.json({
       matches: [],
-      error: error.message || "Something went wrong"
+      error: error.message
     })
   }
 }
