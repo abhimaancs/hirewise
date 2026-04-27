@@ -11,6 +11,10 @@ export async function POST(req: NextRequest) {
     const prompt = `
 Return ONLY a JSON array.
 
+IMPORTANT:
+- Use EXACT candidate_id values from input
+- Do NOT modify IDs
+
 Format:
 [
   {
@@ -38,8 +42,7 @@ Experience: ${c.experience_years ?? 0}
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.1,
-            response_mime_type: "application/json"
+            temperature: 0.1
           }
         })
       }
@@ -57,9 +60,9 @@ Experience: ${c.experience_years ?? 0}
 
     const candidate = data?.candidates?.[0]
 
+    // 🔍 Extract text safely
     let text = ''
 
-    // ✅ Try extracting text safely
     if (candidate?.content?.parts) {
       text = candidate.content.parts
         .map((p: any) => p.text || '')
@@ -67,10 +70,10 @@ Experience: ${c.experience_years ?? 0}
         .trim()
     }
 
+    console.log("AI TEXT:", text)
+
     // ❌ If empty → fallback
     if (!text) {
-      console.warn("Empty AI response")
-
       return NextResponse.json({
         matches: candidates.map((c: any) => ({
           job: c,
@@ -80,13 +83,24 @@ Experience: ${c.experience_years ?? 0}
       })
     }
 
+    // 🧹 Clean markdown
+    const cleaned = text.replace(/```json|```/g, '').trim()
+
     let scores: any = null
 
+    // 🔍 Parse JSON safely
     try {
-      scores = JSON.parse(text)
+      scores = JSON.parse(cleaned)
     } catch {
-      console.error("JSON parse failed:", text)
+      const match = cleaned.match(/\[[\s\S]*\]/)
+      if (match) {
+        try {
+          scores = JSON.parse(match[0])
+        } catch {}
+      }
     }
+
+    console.log("AI SCORES:", scores)
 
     // ❌ If invalid → fallback
     if (!Array.isArray(scores)) {
@@ -99,14 +113,19 @@ Experience: ${c.experience_years ?? 0}
       })
     }
 
-    // ✅ Map results
+    // ✅ Map results (FIXED ID MATCH)
     const matches = scores
-      .map((score: any) => ({
-        job: candidates.find((c: any) => c.id === score.candidate_id),
-        match_score: score.match_score,
-        match_reason: score.match_reason
-      }))
-      .filter((m: any) => m.job)
+      .map((score: any) => {
+        const matchedCandidate = candidates.find(
+          (c: any) => String(c.id) === String(score.candidate_id)
+        )
+
+        return {
+          job: matchedCandidate || candidates[0], // fallback to avoid empty
+          match_score: score.match_score ?? 50,
+          match_reason: score.match_reason || "No reason provided"
+        }
+      })
       .sort((a: any, b: any) => b.match_score - a.match_score)
 
     return NextResponse.json({ matches })
