@@ -45,7 +45,7 @@ Experience: ${c.experience_years ?? 0}
     body: JSON.stringify({
   contents: [{ parts: [{ text: prompt }] }],
   generationConfig: {
-    response_mime_type: "application/json",
+    
     temperature: 0.2
   }
 })
@@ -53,10 +53,22 @@ Experience: ${c.experience_years ?? 0}
     )
 
     const data = await res.json()
+console.log("FULL RESPONSE:", JSON.stringify(data, null, 2))
 
     // 🔍 Extract text safely
-    const parts = data?.candidates?.[0]?.content?.parts || []
-    const text = parts.map((p: any) => p.text || '').join('').trim()
+    let text = ''
+
+// ✅ Case 1: JSON response (when response_mime_type is used)
+if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+  text = data.candidates[0].content.parts[0].text
+}
+
+// ✅ Case 2: Sometimes Gemini returns direct JSON
+if (!text && data?.candidates?.[0]?.content) {
+  try {
+    text = JSON.stringify(data.candidates[0].content)
+  } catch {}
+}
 
     console.log("AI TEXT:", text)
 
