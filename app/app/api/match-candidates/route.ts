@@ -1,7 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,13 +8,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing job or candidates' }, { status: 400 })
     }
 
-    const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2048,
-      messages: [
-        {
-          role: 'user',
-          content: `You are an expert technical recruiter. Score how well each candidate matches this job.
+    const prompt = `You are an expert technical recruiter. Score how well each candidate matches this job.
 
 JOB:
 Title: ${job.title}
@@ -34,23 +25,31 @@ Experience: ${c.experience_years ?? 0} years
 College: ${c.college || 'not specified'}
 `).join('\n')}
 
-Return ONLY a valid JSON array, no markdown:
+Return ONLY a valid JSON array, no markdown, no explanation:
 [
   {
     "candidate_id": "id here",
     "match_score": 88,
     "match_reason": "Strong React and Node.js skills match well."
   }
-]`
-        }
-      ]
-    })
+]
 
-    const content = message.content[0]
-    if (content.type !== 'text') throw new Error('Unexpected response type')
+Score 0-100. Sort by score descending.`
 
-    // Clean response in case of markdown
-    const cleaned = content.text.replace(/```json|```/g, '').trim()
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GOOGLE_AI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      }
+    )
+
+    const data = await res.json()
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    const cleaned = text.replace(/```json|```/g, '').trim()
     const scores = JSON.parse(cleaned)
 
     const matches = scores
@@ -66,9 +65,6 @@ Return ONLY a valid JSON array, no markdown:
 
   } catch (error: any) {
     console.error('Candidate matching error:', error)
-    return NextResponse.json({ 
-      error: 'Matching failed', 
-      detail: error?.message || String(error)
-    }, { status: 500 })
+    return NextResponse.json({ error: 'Matching failed', detail: error?.message }, { status: 500 })
   }
 }

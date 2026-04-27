@@ -1,19 +1,10 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: NextRequest) {
   try {
     const { candidate, job } = await req.json()
 
-    const message = await anthropic.messages.create({
-      model: 'claude-opus-4-5-20251101',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: `Write a professional, concise cover letter for this candidate applying to this job.
+    const prompt = `Write a professional, concise cover letter for this candidate applying to this job.
 
 CANDIDATE:
 Name: ${candidate.name}
@@ -28,23 +19,26 @@ Company: ${job.company_name || 'the company'}
 Required Skills: ${job.required_skills?.join(', ')}
 Description: ${job.description?.slice(0, 300)}
 
-Write a 3-paragraph cover letter:
-1. Opening — express enthusiasm for the specific role
-2. Middle — highlight 2-3 relevant skills/experiences that match the job
-3. Closing — call to action, professional sign-off
+Write a 3-paragraph cover letter. Tone: professional but human. Max 200 words. Start with "Dear Hiring Manager,"`
 
-Tone: professional but human. Not generic. Max 200 words. Start directly with "Dear Hiring Manager,"`
-        }
-      ]
-    })
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GOOGLE_AI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      }
+    )
 
-    const content = message.content[0]
-    if (content.type !== 'text') throw new Error('Unexpected response')
+    const data = await res.json()
+    const coverLetter = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
 
-    return NextResponse.json({ coverLetter: content.text })
+    return NextResponse.json({ coverLetter })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Cover letter error:', error)
-    return NextResponse.json({ error: 'Generation failed' }, { status: 500 })
+    return NextResponse.json({ error: 'Generation failed', detail: error?.message }, { status: 500 })
   }
 }

@@ -1,23 +1,13 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: NextRequest) {
   try {
     const { resumeText } = await req.json()
-
     if (!resumeText) {
       return NextResponse.json({ error: 'No resume text provided' }, { status: 400 })
     }
 
-    const message = await anthropic.messages.create({
-      model: 'claude-opus-4-5-20251101',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: `Extract structured information from this resume. Return ONLY valid JSON, no markdown.
+    const prompt = `Extract structured information from this resume. Return ONLY valid JSON, no markdown.
 
 Resume:
 ${resumeText}
@@ -31,20 +21,27 @@ Return this exact JSON structure:
   "bio": "2-sentence professional summary",
   "location": "city, country"
 }`
-        }
-      ]
-    })
 
-    const content = message.content[0]
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type')
-    }
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GOOGLE_AI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      }
+    )
 
-    const parsed = JSON.parse(content.text)
+    const data = await res.json()
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    const cleaned = text.replace(/```json|```/g, '').trim()
+    const parsed = JSON.parse(cleaned)
+
     return NextResponse.json({ data: parsed })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Resume parse error:', error)
-    return NextResponse.json({ error: 'Failed to parse resume' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to parse resume', detail: error?.message }, { status: 500 })
   }
 }

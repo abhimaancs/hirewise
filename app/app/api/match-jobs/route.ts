@@ -1,73 +1,71 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
-import { Job, CandidateProfile, JobMatch } from '@/types'
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: NextRequest) {
   try {
-    const { candidate, jobs }: { candidate: CandidateProfile; jobs: Job[] } = await req.json()
+    const { candidate, jobs } = await req.json()
 
     if (!candidate || !jobs?.length) {
       return NextResponse.json({ error: 'Missing candidate or jobs' }, { status: 400 })
     }
 
-    const message = await anthropic.messages.create({
-      model: 'claude-opus-4-5-20251101',
-      max_tokens: 2048,
-      messages: [
-        {
-          role: 'user',
-          content: `You are a smart job matching AI. Score how well this candidate matches each job.
+    const prompt = `You are a smart job matching AI. Score how well this candidate matches each job.
 
 CANDIDATE:
 Name: ${candidate.name}
-Skills: ${candidate.skills.join(', ')}
+Skills: ${candidate.skills?.join(', ')}
 Experience: ${candidate.experience_years} years
-Education: ${candidate.college || 'Not specified'}
-Bio: ${candidate.bio || 'Not specified'}
+College: ${candidate.college || 'not specified'}
+Bio: ${candidate.bio || 'not specified'}
 
 JOBS:
-${jobs.map((j, i) => `
+${jobs.map((j: any, i: number) => `
 Job ${i + 1} (id: ${j.id}):
 Title: ${j.title}
-Required Skills: ${j.required_skills.join(', ')}
-Description: ${j.description.slice(0, 200)}
+Required Skills: ${j.required_skills?.join(', ')}
+Description: ${j.description?.slice(0, 200)}
 Type: ${j.job_type}
 `).join('\n')}
 
-Return ONLY valid JSON array, no markdown:
+Return ONLY a valid JSON array, no markdown:
 [
   {
     "job_id": "job id here",
     "match_score": 85,
-    "match_reason": "Strong React and TypeScript skills align with requirements. 2 years experience is a good fit."
+    "match_reason": "Strong React and TypeScript skills align with requirements."
   }
 ]
 
-Score from 0-100. Be accurate. Consider skill overlap, experience level, and role fit.`
-        }
-      ]
-    })
+Score 0-100. Sort by score descending.`
 
-    const content = message.content[0]
-    if (content.type !== 'text') throw new Error('Unexpected response')
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GOOGLE_AI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      }
+    )
 
-    const scores: { job_id: string; match_score: number; match_reason: string }[] = JSON.parse(content.text)
+    const data = await res.json()
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    const cleaned = text.replace(/```json|```/g, '').trim()
+    const scores = JSON.parse(cleaned)
 
-    const matches: JobMatch[] = scores
-      .map(score => ({
-        job: jobs.find(j => j.id === score.job_id)!,
+    const matches = scores
+      .map((score: any) => ({
+        job: jobs.find((j: any) => j.id === score.job_id),
         match_score: score.match_score,
         match_reason: score.match_reason
       }))
-      .filter(m => m.job)
-      .sort((a, b) => b.match_score - a.match_score)
+      .filter((m: any) => m.job)
+      .sort((a: any, b: any) => b.match_score - a.match_score)
 
     return NextResponse.json({ matches })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Matching error:', error)
-    return NextResponse.json({ error: 'Matching failed' }, { status: 500 })
+    return NextResponse.json({ error: 'Matching failed', detail: error?.message }, { status: 500 })
   }
 }
