@@ -8,13 +8,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing data' }, { status: 400 })
     }
 
-    // ✅ Better prompt (forces correct scoring)
     const prompt = `
 Return ONLY a JSON array.
 
 IMPORTANT:
 - match_score MUST be between 0 and 100 (integer)
-- Do NOT return decimals like 0.8
 
 Format:
 [
@@ -105,27 +103,43 @@ Experience: ${c.experience_years ?? 0}
       })
     }
 
-    // ✅ FINAL mapping (FIXED SCORE ISSUE HERE)
+    // ✅ FINAL mapping with HYBRID scoring
     const matches = scores
       .map((score: any, i: number) => {
         const matched = candidates.find(
           (c: any) => String(c.id) === String(score.candidate_id)
         )
 
-        // 🔥 FIX: normalize score
-        let finalScore = Number(score.match_score) || 50
+        const candidate = matched || candidates[i] || candidates[0]
 
-        // convert 0–1 → 0–100
-        if (finalScore <= 1) {
-          finalScore = finalScore * 100
-        }
+        // 🧠 1. Skill score (70%)
+        const skillMatchCount =
+          candidate.skills?.filter((s: string) =>
+            job.required_skills?.includes(s)
+          ).length || 0
 
-        // clamp
+        const totalSkills = job.required_skills?.length || 1
+
+        const skillScore = (skillMatchCount / totalSkills) * 70
+
+        // 🧠 2. Experience score (30%)
+        const exp = candidate.experience_years || 0
+        const expScore = Math.min(30, exp * 5)
+
+        // 🤖 3. AI score (scaled)
+        let aiScore = Number(score.match_score) || 50
+        if (aiScore <= 1) aiScore *= 100
+
+        // 🎯 FINAL score
+        let finalScore = Math.round(
+          skillScore + expScore + aiScore * 0.3
+        )
+
         finalScore = Math.max(0, Math.min(100, finalScore))
 
         return {
-          job: matched || candidates[i] || candidates[0],
-          match_score: Math.round(finalScore),
+          job: candidate,
+          match_score: finalScore,
           match_reason: score.match_reason || "No reason"
         }
       })
