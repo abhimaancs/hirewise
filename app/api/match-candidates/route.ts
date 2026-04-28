@@ -8,151 +8,130 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing data' }, { status: 400 })
     }
 
-    const prompt = `
-Return ONLY a JSON array.
+    const prompt = `You are an expert technical recruiter. Score how well each candidate matches this job.
 
-IMPORTANT:
-- match_score MUST be between 0 and 100 (integer)
+JOB:
+Title: ${job.title}
+Required Skills: ${job.required_skills?.join(', ')}
+Type: ${job.job_type}
+Description: ${job.description?.slice(0, 300)}
 
-Format:
+CANDIDATES:
+${candidates.map((c: any) => `
+ID: ${c.id}
+Name: ${c.name}
+Skills: ${c.skills?.join(', ') || 'none listed'}
+Experience: ${c.experience_years ?? 0} years
+College: ${c.college || 'not specified'}
+Bio: ${c.bio || 'not specified'}
+`).join('\n')}
+
+Return ONLY a valid JSON array. No markdown, no explanation, nothing else.
+Each object must have exactly these fields:
 [
   {
-    "candidate_id": "string",
-    "match_score": number,
-    "match_reason": "short reason"
+    "candidate_id": "exact id from above",
+    "match_score": 85,
+    "match_reason": "1-2 sentence explanation of why this candidate fits"
   }
 ]
 
-Job Skills: ${job.required_skills?.join(', ')}
+Score from 0-100. Consider skill overlap, experience level, and overall fit.
+Sort by match_score descending.`
 
-Candidates:
-${candidates.map((c: any) => `
-ID: ${c.id}
-Skills: ${c.skills?.join(', ') || 'none'}
-Experience: ${c.experience_years ?? 0}
-`).join('\n')}
-`
-
-    // 🔥 OpenRouter API
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
+    // Call OpenRouter AI
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
       headers: {
-        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json"
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://hirewise-henna.vercel.app',
+        'X-Title': 'HireWise'
       },
       body: JSON.stringify({
-        model: "openrouter/auto",
+        model: 'mistralai/mistral-7b-instruct',
         messages: [
-          { role: "system", content: "You return ONLY valid JSON array." },
-          { role: "user", content: prompt }
+          { role: 'system', content: 'You are a technical recruiter. You return ONLY valid JSON arrays. No markdown, no explanation.' },
+          { role: 'user', content: prompt }
         ],
-        temperature: 0.2
+        temperature: 0.1
       })
     })
 
     const data = await res.json()
+    console.log('OpenRouter response status:', res.status)
 
-    console.log("🔥 OPENROUTER RESPONSE:", JSON.stringify(data, null, 2))
+    const text = data?.choices?.[0]?.message?.content || ''
+    console.log('AI text:', text)
 
-    const text = data?.choices?.[0]?.message?.content || ""
-
-    console.log("🧠 AI TEXT:", text)
-
-    let scores: any = null
-
-    // 🧹 Robust parsing
-    if (text) {
+    // Parse AI response
+    let scores: any[] = []
+    try {
+      // Try direct parse first
+      scores = JSON.parse(text)
+    } catch {
       try {
-        scores = JSON.parse(text)
+        // Try cleaning markdown
+        const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim()
+        scores = JSON.parse(cleaned)
       } catch {
-        try {
-          const cleaned = text
-            .replace(/```json/g, '')
-            .replace(/```/g, '')
-            .trim()
-
-          scores = JSON.parse(cleaned)
-        } catch {
-          const match = text.match(/\[[\s\S]*\]/)
-          if (match) {
-            try {
-              scores = JSON.parse(match[0])
-            } catch (err) {
-              console.error("❌ PARSE FAIL:", err)
-            }
-          }
+        // Try extracting JSON array
+        const match = text.match(/\[[\s\S]*\]/)
+        if (match) {
+          scores = JSON.parse(match[0])
         }
       }
     }
 
-    // ⚠️ Fallback if AI fails
-    if (!Array.isArray(scores)) {
-      console.warn("⚠️ Using fallback scoring")
-
+    // Fallback if AI fails — skill-based scoring
+    if (!Array.isArray(scores) || scores.length === 0) {
+      console.warn('AI failed, using skill-based fallback')
       scores = candidates.map((c: any) => {
-        const skillMatch =
-          c.skills?.filter((s: string) =>
-            job.required_skills?.includes(s)
-          ).length || 0
-
+        const matchedSkills = c.skills?.filter((s: string) =>
+          job.required_skills?.map((r: string) => r.toLowerCase()).includes(s.toLowerCase())
+        ) || []
+        const totalRequired = job.required_skills?.length || 1
+        const skillScore = Math.round((matchedSkills.length / totalRequired) * 100)
         return {
-          candidate_id: String(c.id),
-          match_score: Math.min(100, 50 + skillMatch * 10),
-          match_reason: "Skill-based fallback"
+          candidate_id: c.id,
+          match_score: Math.min(95, Math.max(30, skillScore)),
+          match_reason: matchedSkills.length > 0
+            ? `Matched ${matchedSkills.length} of ${totalRequired} required skills: ${matchedSkills.join(', ')}`
+            : 'Limited skill overlap with job requirements'
         }
       })
     }
 
-    // ✅ FINAL mapping with HYBRID scoring
+    // Map scores to candidates
     const matches = scores
-      .map((score: any, i: number) => {
-        const matched = candidates.find(
+      .map((score: any) => {
+        const candidate = candidates.find(
           (c: any) => String(c.id) === String(score.candidate_id)
         )
-
-        const candidate = matched || candidates[i] || candidates[0]
-
-        // 🧠 1. Skill score (70%)
-        const skillMatchCount =
-          candidate.skills?.filter((s: string) =>
-            job.required_skills?.includes(s)
-          ).length || 0
-
-        const totalSkills = job.required_skills?.length || 1
-
-        const skillScore = (skillMatchCount / totalSkills) * 70
-
-        // 🧠 2. Experience score (30%)
-        const exp = candidate.experience_years || 0
-        const expScore = Math.min(30, exp * 5)
-
-        // 🤖 3. AI score (scaled)
-        let aiScore = Number(score.match_score) || 50
-        if (aiScore <= 1) aiScore *= 100
-
-        // 🎯 FINAL score
-        let finalScore = Math.round(
-          skillScore + expScore + aiScore * 0.3
-        )
-
-        finalScore = Math.max(0, Math.min(100, finalScore))
-
+        if (!candidate) return null
         return {
           job: candidate,
-          match_score: finalScore,
-          match_reason: score.match_reason || "No reason"
+          match_score: Math.max(0, Math.min(100, Number(score.match_score) || 50)),
+          match_reason: score.match_reason || 'No reason provided'
         }
       })
+      .filter(Boolean)
       .sort((a: any, b: any) => b.match_score - a.match_score)
+
+    // If still empty, return all candidates with fallback scores
+    if (matches.length === 0) {
+      const fallback = candidates.map((c: any, i: number) => ({
+        job: c,
+        match_score: Math.max(30, 80 - i * 10),
+        match_reason: 'Profile reviewed — update skills for better matching'
+      }))
+      return NextResponse.json({ matches: fallback })
+    }
 
     return NextResponse.json({ matches })
 
   } catch (error: any) {
-    console.error("💥 ERROR:", error)
-
-    return NextResponse.json({
-      matches: [],
-      error: error.message
-    })
+    console.error('Match candidates error:', error?.message)
+    return NextResponse.json({ error: 'Matching failed', detail: error?.message }, { status: 500 })
   }
 }
