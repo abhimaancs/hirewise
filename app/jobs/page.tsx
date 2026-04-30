@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import Navbar from '@/components/layout/Navbar'
 import { Job, JobMatch, CandidateProfile } from '@/types'
-import { Briefcase, MapPin, Clock, Zap, Loader2 } from 'lucide-react'
+import { Loader2, Zap, Briefcase } from 'lucide-react'
 
 export default function JobsPage() {
   const supabase = createClient()
@@ -13,38 +13,24 @@ export default function JobsPage() {
   const [filter, setFilter] = useState<'all' | 'remote' | 'internship'>('all')
   const [profile, setProfile] = useState<CandidateProfile | null>(null)
 
-  useEffect(() => {
-    loadJobsAndMatch()
-  }, [])
+  useEffect(() => { loadJobsAndMatch() }, [])
 
   const loadJobsAndMatch = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { window.location.href = '/login'; return }
 
-      // Get candidate profile + skills
-      const { data: profileData } = await supabase
-        .from('profiles').select('*').eq('id', user.id).single()
-      const { data: candidateData } = await supabase
-        .from('candidate_profiles').select('*').eq('id', user.id).single()
-
+      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+      const { data: candidateData } = await supabase.from('candidate_profiles').select('*').eq('id', session.user.id).single()
       const candidate = { ...profileData, ...candidateData } as CandidateProfile
       setProfile(candidate)
 
-      // Fetch all active jobs
-      const { data: jobs } = await supabase
-        .from('jobs')
-        .select('*, company:company_profiles(company_name, location)')
-        .eq('is_active', true)
-        .limit(20)
-
+      const { data: jobs } = await supabase.from('jobs').select('*, company:company_profiles(company_name, location)').eq('is_active', true).limit(20)
       if (!jobs?.length) { setLoading(false); return }
 
-      // AI match
       setMatching(true)
       const res = await fetch('/api/match-jobs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ candidate, jobs })
       })
       const { matches: aiMatches } = await res.json()
@@ -52,8 +38,7 @@ export default function JobsPage() {
     } catch (err) {
       console.error(err)
     } finally {
-      setLoading(false)
-      setMatching(false)
+      setLoading(false); setMatching(false)
     }
   }
 
@@ -63,123 +48,99 @@ export default function JobsPage() {
     return true
   })
 
-  const scoreColor = (score: number) => score >= 85 ? 'var(--green)' : score >= 70 ? 'var(--accent)' : 'var(--muted)'
+  const scoreColor = (s: number) => s >= 85 ? '#059669' : s >= 70 ? '#6366f1' : '#888'
+  const scoreBg = (s: number) => s >= 85 ? '#ecfdf5' : s >= 70 ? '#eef2ff' : '#f5f5f5'
+  const scoreBorder = (s: number) => s >= 85 ? '#a7f3d0' : s >= 70 ? '#c7d2fe' : '#e8e8e8'
 
   return (
     <>
       <Navbar userRole="candidate" />
-      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '2rem' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '2rem 1.5rem' }}>
 
-        {/* AI banner */}
+        {/* AI Banner */}
         {profile && (
           <div style={{
-            background: 'rgba(79,142,247,0.08)', border: '1px solid rgba(79,142,247,0.2)',
-            borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '2rem',
-            display: 'flex', alignItems: 'center', gap: '1rem'
+            background: 'linear-gradient(135deg, #eef2ff, #f5f3ff)',
+            border: '1px solid #c7d2fe', borderRadius: 14,
+            padding: '1rem 1.25rem', marginBottom: '1.5rem',
+            display: 'flex', alignItems: 'center', gap: 12
           }}>
-            <div style={{
-              width: 36, height: 36, background: 'var(--accent)', borderRadius: 8,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-            }}>
-              {matching ? <Loader2 size={16} color="#fff" /> : <Zap size={16} color="#fff" />}
+            <div style={{ width: 36, height: 36, background: '#6366f1', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              {matching ? <Loader2 size={16} color="#fff" style={{ animation: 'spin 1s linear infinite' }} /> : <Zap size={16} color="#fff" />}
             </div>
             <div>
-              <strong style={{ display: 'block', fontSize: '0.875rem', color: '#fff' }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a' }}>
                 {matching ? 'AI is matching jobs to your profile...' : `AI matched ${matches.length} jobs for you`}
-              </strong>
-              <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
-                Based on your skills: {profile.skills?.join(', ') || 'Update your profile to get better matches'}
-              </span>
+              </div>
+              <div style={{ fontSize: 13, color: '#888' }}>
+                Based on: {profile.skills?.slice(0, 4).join(', ') || 'Add skills to your profile for better matches'}
+              </div>
             </div>
+            <a href="/profile" style={{ marginLeft: 'auto', textDecoration: 'none' }}>
+              <button style={{ padding: '6px 12px', background: '#fff', border: '1px solid #e8e8e8', borderRadius: 8, fontSize: 12, color: '#444', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+                Update profile
+              </button>
+            </a>
           </div>
         )}
 
         {/* Filters */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem' }}>
           {(['all', 'remote', 'internship'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)} style={{
-              padding: '0.5rem 1.25rem', borderRadius: '8px', border: '1px solid var(--border)',
-              background: filter === f ? 'var(--accent)' : 'var(--card)',
-              color: filter === f ? '#fff' : 'var(--muted)',
-              fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'var(--font-dm)',
+              padding: '6px 16px', borderRadius: 20, border: '1px solid',
+              borderColor: filter === f ? '#6366f1' : '#e8e8e8',
+              background: filter === f ? '#6366f1' : '#fff',
+              color: filter === f ? '#fff' : '#888',
+              fontSize: 13, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
               textTransform: 'capitalize'
             }}>{f}</button>
           ))}
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--muted)' }}>
-            <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: '1rem' }} />
-            <p>Loading jobs...</p>
+          <div style={{ textAlign: 'center', padding: '4rem', color: '#888' }}>
+            <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: 12 }} />
+            <p style={{ fontSize: 14 }}>Finding your matches...</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--muted)' }}>
-            <Briefcase size={40} style={{ marginBottom: '1rem', opacity: 0.4 }} />
-            <p>No jobs found. <a href="/profile" style={{ color: 'var(--accent)' }}>Update your profile</a> to get matches.</p>
+          <div style={{ textAlign: 'center', padding: '4rem', color: '#888' }}>
+            <Briefcase size={40} style={{ marginBottom: 12, opacity: 0.3 }} />
+            <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 6 }}>No jobs found</p>
+            <p style={{ fontSize: 13 }}><a href="/profile" style={{ color: '#6366f1' }}>Complete your profile</a> to get AI matches</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
             {filtered.map(({ job, match_score, match_reason }) => (
               <div key={job.id} style={{
-                background: 'var(--card)', border: '1px solid var(--border)',
-                borderRadius: '14px', padding: '1.25rem', cursor: 'pointer',
-                transition: 'all 0.2s'
+                background: '#fff', border: '1px solid #e8e8e8', borderRadius: 16,
+                padding: '1.25rem', cursor: 'pointer', transition: 'all 0.2s'
               }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.background = 'var(--card-hover)'
-                  ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(79,142,247,0.3)'
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.background = 'var(--card)'
-                  ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'
-                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#c7d2fe'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 12px rgba(99,102,241,0.08)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#e8e8e8'; (e.currentTarget as HTMLElement).style.boxShadow = 'none' }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 10,
-                    background: 'rgba(79,142,247,0.15)', color: 'var(--accent)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontWeight: 700, fontSize: '0.875rem', fontFamily: 'var(--font-syne)'
-                  }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#6366f1', fontSize: 15 }}>
                     {job.title[0]}
                   </div>
-                  <div style={{
-                    background: 'rgba(16,185,129,0.15)', color: scoreColor(match_score),
-                    border: `1px solid rgba(16,185,129,0.3)`, borderRadius: '999px',
-                    fontSize: '0.7rem', padding: '0.2rem 0.6rem', fontWeight: 500,
-                    alignSelf: 'flex-start'
-                  }}>
+                  <div style={{ background: scoreBg(match_score), color: scoreColor(match_score), border: `1px solid ${scoreBorder(match_score)}`, borderRadius: 20, fontSize: 11, fontWeight: 600, padding: '3px 8px', alignSelf: 'flex-start' }}>
                     {match_score}% match
                   </div>
                 </div>
 
-                <div style={{ fontFamily: 'var(--font-syne)', fontSize: '1rem', fontWeight: 600, color: '#fff', marginBottom: '0.25rem' }}>
-                  {job.title}
-                </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginBottom: '0.5rem' }}>
-                  {(job as any).company?.company_name} · {job.location}
-                </div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: '#1a1a1a', marginBottom: 3 }}>{job.title}</div>
+                <div style={{ fontSize: 13, color: '#888', marginBottom: 8 }}>{(job as any).company?.company_name} · {job.location}</div>
+                <p style={{ fontSize: 12, color: '#999', lineHeight: 1.5, marginBottom: 10, background: '#fafafa', borderRadius: 8, padding: '8px 10px' }}>✦ {match_reason}</p>
 
-                <p style={{ fontSize: '0.75rem', color: 'var(--muted)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
-                  {match_reason}
-                </p>
-
-                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-                  {job.required_skills.slice(0, 4).map(skill => (
-                    <span key={skill} style={{
-                      background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)',
-                      borderRadius: '6px', fontSize: '0.7rem', padding: '0.2rem 0.5rem', color: '#cbd5e1'
-                    }}>{skill}</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 12 }}>
+                  {job.required_skills.slice(0, 4).map(s => (
+                    <span key={s} style={{ background: '#f3f4f6', color: '#6b7280', borderRadius: 6, fontSize: 11, padding: '3px 7px' }}>{s}</span>
                   ))}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--accent)', fontWeight: 500 }}>
-                    {job.salary_range || 'Salary not listed'}
-                  </span>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--muted)', textTransform: 'capitalize' }}>
-                    {job.job_type}
-                  </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#6366f1' }}>{job.salary_range || 'Salary not listed'}</span>
+                  <span style={{ fontSize: 12, color: '#888', textTransform: 'capitalize' }}>{job.job_type}</span>
                 </div>
               </div>
             ))}
