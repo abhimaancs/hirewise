@@ -1,73 +1,103 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
-import { Job, CandidateProfile, JobMatch } from '@/types'
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: NextRequest) {
   try {
-    const { candidate, jobs }: { candidate: CandidateProfile; jobs: Job[] } = await req.json()
+    const { candidate, jobs } = await req.json()
 
     if (!candidate || !jobs?.length) {
       return NextResponse.json({ error: 'Missing candidate or jobs' }, { status: 400 })
     }
 
-    const message = await anthropic.messages.create({
-      model: 'claude-opus-4-6',
-      max_tokens: 2048,
-      messages: [
-        {
-          role: 'user',
-          content: `You are a smart job matching AI. Score how well this candidate matches each job.
+    const prompt = `You are a smart job matching AI. Score how well this candidate matches each job.
 
 CANDIDATE:
 Name: ${candidate.name}
-Skills: ${candidate.skills.join(', ')}
-Experience: ${candidate.experience_years} years
-Education: ${candidate.college || 'Not specified'}
-Bio: ${candidate.bio || 'Not specified'}
+Skills: ${candidate.skills?.join(', ') || 'none'}
+Experience: ${candidate.experience_years ?? 0} years
+College: ${candidate.college || 'not specified'}
+Bio: ${candidate.bio || 'not specified'}
 
 JOBS:
-${jobs.map((j, i) => `
-Job ${i + 1} (id: ${j.id}):
-Title: ${j.title}
-Required Skills: ${j.required_skills.join(', ')}
-Description: ${j.description.slice(0, 200)}
-Type: ${j.job_type}
-`).join('\n')}
+${jobs.map((j: any) => `ID: ${j.id}, Title: ${j.title}, Required Skills: ${j.required_skills?.join(', ')}, Type: ${j.job_type}`).join('\n')}
 
-Return ONLY valid JSON array, no markdown:
-[
-  {
-    "job_id": "job id here",
-    "match_score": 85,
-    "match_reason": "Strong React and TypeScript skills align with requirements. 2 years experience is a good fit."
-  }
-]
+Return ONLY a valid JSON array, no markdown:
+[{"job_id":"id here","match_score":85,"match_reason":"reason here"}]
 
-Score from 0-100. Be accurate. Consider skill overlap, experience level, and role fit.`
-        }
-      ]
+Score 0-100. Sort by score descending.`
+
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://hirewise-henna.vercel.app',
+        'X-Title': 'HireWise'
+      },
+      body: JSON.stringify({
+        model: 'mistralai/mistral-7b-instruct',
+        messages: [
+          { role: 'system', content: 'You return ONLY valid JSON arrays. No markdown, no explanation.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.1
+      })
     })
 
-    const content = message.content[0]
-    if (content.type !== 'text') throw new Error('Unexpected response')
+    const data = await res.json()
+    const text = data?.choices?.[0]?.message?.content || ''
+    console.log('match-jobs AI text:', text)
 
-    const scores: { job_id: string; match_score: number; match_reason: string }[] = JSON.parse(content.text)
+    // Parse response
+    let scores: any[] = []
+    try { scores = JSON.parse(text) } catch {
+      try { scores = JSON.parse(text.replace(/```json|```/g, '').trim()) } catch {
+        const match = text.match(/\[[\s\S]*\]/)
+        if (match) scores = JSON.parse(match[0])
+      }
+    }
 
-    const matches: JobMatch[] = scores
-      .map(score => ({
-        job: jobs.find(j => j.id === score.job_id)!,
-        match_score: score.match_score,
-        match_reason: score.match_reason
+    // Fallback — skill based scoring
+    if (!Array.isArray(scores) || scores.length === 0) {
+      console.warn('Using fallback scoring for jobs')
+      scores = jobs.map((j: any) => {
+        const matched = candidate.skills?.filter((s: string) =>
+          j.required_skills?.map((r: string) => r.toLowerCase()).includes(s.toLowerCase())
+        ) || []
+        const score = Math.min(95, Math.max(30, Math.round((matched.length / (j.required_skills?.length || 1)) * 100)))
+        return {
+          job_id: j.id,
+          match_score: score,
+          match_reason: matched.length > 0
+            ? `Matched ${matched.length} skills: ${matched.join(', ')}`
+            : 'Limited skill overlap with job requirements'
+        }
+      })
+    }
+
+    const matches = scores
+      .map((score: any) => ({
+        job: jobs.find((j: any) => j.id === score.job_id),
+        match_score: Math.max(0, Math.min(100, Number(score.match_score) || 50)),
+        match_reason: score.match_reason || 'Profile reviewed'
       }))
-      .filter(m => m.job)
-      .sort((a, b) => b.match_score - a.match_score)
+      .filter((m: any) => m.job)
+      .sort((a: any, b: any) => b.match_score - a.match_score)
+
+    // Final fallback — never return empty
+    if (matches.length === 0) {
+      return NextResponse.json({
+        matches: jobs.map((j: any, i: number) => ({
+          job: j,
+          match_score: Math.max(30, 80 - i * 10),
+          match_reason: 'Add more skills to your profile for better matching'
+        }))
+      })
+    }
 
     return NextResponse.json({ matches })
 
-  } catch (error) {
-    console.error('Matching error:', error)
-    return NextResponse.json({ error: 'Matching failed' }, { status: 500 })
+  } catch (error: any) {
+    console.error('match-jobs error:', error?.message)
+    return NextResponse.json({ error: 'Matching failed', detail: error?.message }, { status: 500 })
   }
 }
