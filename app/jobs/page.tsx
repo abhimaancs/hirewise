@@ -25,7 +25,7 @@ export default function JobsPage() {
       const candidate = { ...profileData, ...candidateData } as CandidateProfile
       setProfile(candidate)
 
-      const { data: jobs } = await supabase.from('jobs').select('*, company:company_profiles(company_name, location)').eq('is_active', true).limit(20)
+      const { data: jobs } = await supabase.from('jobs').select('*').eq('is_active', true).limit(20)
       if (!jobs?.length) { setLoading(false); return }
 
       setMatching(true)
