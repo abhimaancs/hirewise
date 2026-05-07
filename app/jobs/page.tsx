@@ -65,7 +65,7 @@ export default function JobsPage() {
         status: 'applied'
       })
       if (error) throw error
-      setAppliedJobs(prev => new Set([...prev, jobId]))
+      setAppliedJobs(prev => new Set(Array.from(prev).concat(jobId)))
     } catch (err) {
       console.error('Apply error:', err)
       alert('Failed to apply. Please try again.')
