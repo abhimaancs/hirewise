@@ -25,10 +25,7 @@ export default function ConversationsPage() {
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        window.location.href = '/login'
-        return
-      }
+      if (!session) { window.location.href = '/login'; return }
       setAuthChecked(true)
       loadConvs(session.user.id)
     }
@@ -37,12 +34,10 @@ export default function ConversationsPage() {
 
   const loadConvs = async (uid: string) => {
     try {
-      const { data: profile } = await supabase
-        .from('profiles').select('role').eq('id', uid).single()
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', uid).single()
       setUserRole(profile?.role)
 
-      const { data: conversations } = await supabase
-        .from('conversations')
+      const { data: conversations } = await supabase.from('conversations')
         .select('*')
         .or(`candidate_id.eq.${uid},company_id.eq.${uid}`)
         .order('created_at', { ascending: false })
@@ -52,12 +47,9 @@ export default function ConversationsPage() {
       const enriched: ConvRow[] = await Promise.all(
         conversations.map(async (conv) => {
           const otherId = conv.candidate_id === uid ? conv.company_id : conv.candidate_id
-          const { data: other } = await supabase
-            .from('profiles').select('*').eq('id', otherId).single()
-          const { data: lastMsg } = await supabase
-            .from('messages').select('content')
-            .eq('conversation_id', conv.id)
-            .order('created_at', { ascending: false }).limit(1).single()
+          const { data: other } = await supabase.from('profiles').select('*').eq('id', otherId).single()
+          const { data: lastMsg } = await supabase.from('messages').select('content')
+            .eq('conversation_id', conv.id).order('created_at', { ascending: false }).limit(1).single()
           return { ...conv, other: other || null, last_message: lastMsg?.content || null }
         })
       )
@@ -70,7 +62,7 @@ export default function ConversationsPage() {
   }
 
   if (!authChecked) return (
-    <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--muted)' }}>
+    <div style={{ textAlign: 'center', padding: '4rem', color: '#888' }}>
       <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
     </div>
   )
@@ -79,22 +71,23 @@ export default function ConversationsPage() {
     <>
       <Navbar userRole={userRole} />
       <div style={{ maxWidth: '700px', margin: '0 auto', padding: '2rem 1.5rem' }}>
-        <h1 style={{ fontFamily: 'var(--font-syne)', fontSize: '1.5rem', fontWeight: 700, color: '#fff', marginBottom: '0.4rem' }}>
+
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1a1a1a', marginBottom: 4 }}>
           Messages
         </h1>
-        <p style={{ color: 'var(--muted)', fontSize: '0.875rem', marginBottom: '2rem' }}>
+        <p style={{ color: '#888', fontSize: 13, marginBottom: '2rem' }}>
           Your conversations with {userRole === 'candidate' ? 'companies' : 'candidates'}
         </p>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--muted)' }}>
+          <div style={{ textAlign: 'center', padding: '3rem', color: '#888' }}>
             <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
           </div>
         ) : convs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--muted)' }}>
-            <MessageSquare size={40} style={{ marginBottom: '1rem', opacity: 0.4 }} />
-            <p>No messages yet.</p>
-            <p style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
+          <div style={{ textAlign: 'center', padding: '4rem', color: '#888' }}>
+            <MessageSquare size={40} style={{ marginBottom: '1rem', opacity: 0.3 }} />
+            <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 6 }}>No messages yet</p>
+            <p style={{ fontSize: 13 }}>
               {userRole === 'candidate'
                 ? 'Apply to jobs to start conversations with companies.'
                 : 'Message candidates from the candidates page.'}
@@ -105,27 +98,37 @@ export default function ConversationsPage() {
             {convs.map(conv => (
               <Link key={conv.id} href={`/chat/${conv.id}`} style={{ textDecoration: 'none' }}>
                 <div style={{
-                  background: 'var(--card)', border: '1px solid var(--border)',
+                  background: '#fff', border: '1px solid #e8e8e8',
                   borderRadius: '14px', padding: '1rem 1.25rem',
-                  display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer'
-                }}>
+                  display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = '#c7d2fe'
+                    ;(e.currentTarget as HTMLElement).style.background = '#fafafe'
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = '#e8e8e8'
+                    ;(e.currentTarget as HTMLElement).style.background = '#fff'
+                  }}
+                >
                   <div style={{
                     width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-                    background: 'linear-gradient(135deg, var(--accent), var(--accent2))',
+                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: 'var(--font-syne)', fontWeight: 700, color: '#fff'
+                    fontWeight: 700, color: '#fff', fontSize: 16
                   }}>
                     {conv.other?.name?.[0]?.toUpperCase() || '?'}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.9rem', marginBottom: '0.2rem' }}>
+                    <div style={{ fontWeight: 600, color: '#1a1a1a', fontSize: 14, marginBottom: 3 }}>
                       {conv.other?.name || 'Unknown'}
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: 13, color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {conv.last_message || 'No messages yet — start the conversation!'}
                     </div>
                   </div>
-                  <MessageSquare size={16} color="var(--muted)" style={{ flexShrink: 0 }} />
+                  <MessageSquare size={16} color="#ccc" style={{ flexShrink: 0 }} />
                 </div>
               </Link>
             ))}

@@ -12,7 +12,7 @@ export default function JobsPage() {
   const [matching, setMatching] = useState(false)
   const [filter, setFilter] = useState<'all' | 'remote' | 'internship'>('all')
   const [profile, setProfile] = useState<CandidateProfile | null>(null)
-  const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set())
+  const [appliedJobs, setAppliedJobs] = useState<string[]>([])
   const [applying, setApplying] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
 
@@ -31,11 +31,9 @@ export default function JobsPage() {
 
       // Get existing applications
       const { data: existingApps } = await supabase
-        .from('applications')
-        .select('job_id')
-        .eq('candidate_id', session.user.id)
+        .from('applications').select('job_id').eq('candidate_id', session.user.id)
       if (existingApps) {
-        setAppliedJobs(new Set(existingApps.map(a => a.job_id)))
+        setAppliedJobs(existingApps.map((a: any) => a.job_id))
       }
 
       const { data: jobs } = await supabase.from('jobs').select('*').eq('is_active', true).limit(20)
@@ -56,7 +54,7 @@ export default function JobsPage() {
   }
 
   const handleApply = async (jobId: string) => {
-    if (!userId || appliedJobs.has(jobId)) return
+    if (!userId || appliedJobs.includes(jobId)) return
     setApplying(jobId)
     try {
       const { error } = await supabase.from('applications').insert({
@@ -64,11 +62,19 @@ export default function JobsPage() {
         job_id: jobId,
         status: 'applied'
       })
-      if (error) throw error
-      setAppliedJobs(prev => new Set(Array.from(prev).concat(jobId)))
-    } catch (err) {
+      if (error) {
+        console.error('Apply error details:', error)
+        throw error
+      }
+      setAppliedJobs(prev => [...prev, jobId])
+    } catch (err: any) {
       console.error('Apply error:', err)
-      alert('Failed to apply. Please try again.')
+      // If duplicate, just mark as applied silently
+      if (err?.code === '23505') {
+        setAppliedJobs(prev => [...prev, jobId])
+      } else {
+        alert('Failed to apply: ' + (err?.message || 'Please try again'))
+      }
     } finally {
       setApplying(null)
     }
@@ -89,7 +95,6 @@ export default function JobsPage() {
       <Navbar userRole="candidate" />
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '2rem 1.5rem' }}>
 
-        {/* AI Banner */}
         {profile && (
           <div style={{
             background: 'linear-gradient(135deg, #eef2ff, #f5f3ff)',
@@ -116,8 +121,7 @@ export default function JobsPage() {
           </div>
         )}
 
-        {/* Filters */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem', alignItems: 'center' }}>
           {(['all', 'remote', 'internship'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)} style={{
               padding: '6px 16px', borderRadius: 20, border: '1px solid',
@@ -128,9 +132,9 @@ export default function JobsPage() {
               textTransform: 'capitalize'
             }}>{f}</button>
           ))}
-          {appliedJobs.size > 0 && (
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#059669' }}>
-              <CheckCircle size={14} /> {appliedJobs.size} applied
+          {appliedJobs.length > 0 && (
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#059669', fontWeight: 500 }}>
+              <CheckCircle size={14} /> {appliedJobs.length} applied
             </div>
           )}
         </div>
@@ -149,38 +153,30 @@ export default function JobsPage() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
             {filtered.map(({ job, match_score, match_reason }) => {
-              const isApplied = appliedJobs.has(job.id)
+              const isApplied = appliedJobs.includes(job.id)
               const isApplying = applying === job.id
               return (
                 <div key={job.id} style={{
-                  background: '#fff', border: `1px solid ${isApplied ? '#a7f3d0' : '#e8e8e8'}`,
+                  background: '#fff',
+                  border: `1px solid ${isApplied ? '#a7f3d0' : '#e8e8e8'}`,
                   borderRadius: 16, padding: '1.25rem', transition: 'all 0.2s',
                   position: 'relative'
                 }}
                   onMouseEnter={e => { if (!isApplied) (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 12px rgba(99,102,241,0.08)' }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = 'none' }}
                 >
-                  {/* Applied badge */}
-                  {isApplied && (
-                    <div style={{ position: 'absolute', top: 12, right: 12, background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', borderRadius: 20, fontSize: 11, fontWeight: 600, padding: '3px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <CheckCircle size={11} /> Applied
-                    </div>
-                  )}
-
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
                     <div style={{ width: 40, height: 40, borderRadius: 10, background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#6366f1', fontSize: 15 }}>
                       {job.title[0]}
                     </div>
-                    {!isApplied && (
-                      <div style={{ background: scoreBg(match_score), color: scoreColor(match_score), border: `1px solid ${scoreBorder(match_score)}`, borderRadius: 20, fontSize: 11, fontWeight: 600, padding: '3px 8px', alignSelf: 'flex-start' }}>
-                        {match_score}% match
-                      </div>
-                    )}
+                    <div style={{ background: scoreBg(match_score), color: scoreColor(match_score), border: `1px solid ${scoreBorder(match_score)}`, borderRadius: 20, fontSize: 11, fontWeight: 600, padding: '3px 8px', alignSelf: 'flex-start' }}>
+                      {match_score}% match
+                    </div>
                   </div>
 
                   <div style={{ fontSize: 15, fontWeight: 600, color: '#1a1a1a', marginBottom: 3 }}>{job.title}</div>
                   <div style={{ fontSize: 13, color: '#888', marginBottom: 8 }}>{job.location} · {job.job_type}</div>
-                  <p style={{ fontSize: 12, color: '#999', lineHeight: 1.5, marginBottom: 10, background: '#fafafa', borderRadius: 8, padding: '8px 10px' }}>✦ {match_reason}</p>
+                  <p style={{ fontSize: 12, color: '#666', lineHeight: 1.5, marginBottom: 10, background: '#fafafa', borderRadius: 8, padding: '8px 10px' }}>✦ {match_reason}</p>
 
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 14 }}>
                     {job.required_skills?.slice(0, 4).map((s: string) => (
@@ -196,11 +192,11 @@ export default function JobsPage() {
                       style={{
                         display: 'flex', alignItems: 'center', gap: 6,
                         padding: '7px 16px', borderRadius: 8, border: 'none',
-                        background: isApplied ? '#f0fdf4' : '#6366f1',
+                        background: isApplied ? '#ecfdf5' : '#6366f1',
                         color: isApplied ? '#059669' : '#fff',
                         fontSize: 13, fontWeight: 500,
                         cursor: isApplied ? 'default' : 'pointer',
-                        fontFamily: 'Inter, sans-serif'
+                        fontFamily: 'Inter, sans-serif', transition: 'all 0.2s'
                       }}>
                       {isApplying
                         ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
