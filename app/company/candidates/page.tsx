@@ -17,16 +17,27 @@ function CandidatesContent() {
   const [applicants, setApplicants] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [matching, setMatching] = useState(false)
-  const [tab, setTab] = useState<'ai' | 'applicants'>('applicants')
+  const [tab, setTab] = useState<'applicants' | 'ai'>('applicants')
   const [startingChat, setStartingChat] = useState<string | null>(null)
+  const [companyId, setCompanyId] = useState<string | null>(null)
 
   useEffect(() => { loadJobs() }, [])
-  useEffect(() => { if (selectedJob) { loadApplicants(selectedJob.id); matchCandidates(selectedJob) } }, [selectedJob])
+  useEffect(() => {
+    if (selectedJob) {
+      loadApplicants(selectedJob.id)
+      matchCandidates(selectedJob)
+    }
+  }, [selectedJob])
 
   const loadJobs = async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { window.location.href = '/login'; return }
-    const { data } = await supabase.from('jobs').select('*').eq('company_id', session.user.id).eq('is_active', true).order('created_at', { ascending: false })
+    setCompanyId(session.user.id)
+
+    const { data } = await supabase.from('jobs').select('*')
+      .eq('company_id', session.user.id)
+      .order('created_at', { ascending: false })
+
     setJobs(data || [])
     const target = data?.find(j => j.id === jobId) || data?.[0]
     if (target) setSelectedJob(target)
@@ -34,11 +45,29 @@ function CandidatesContent() {
   }
 
   const loadApplicants = async (jid: string) => {
-    const { data } = await supabase.from('applications')
-      .select('*, candidate:profiles(*), candidate_details:candidate_profiles(*)')
-      .eq('job_id', jid)
-      .order('applied_at', { ascending: false })
-    setApplicants(data || [])
+    try {
+      // Get applications for this job
+      const { data: apps, error } = await supabase
+        .from('applications')
+        .select('*')
+        .eq('job_id', jid)
+        .order('applied_at', { ascending: false })
+
+      if (error) { console.error('Apps error:', error); return }
+      if (!apps?.length) { setApplicants([]); return }
+
+      // Get candidate details for each application
+      const enriched = await Promise.all(
+        apps.map(async (app: any) => {
+          const { data: candidate } = await supabase.from('profiles').select('*').eq('id', app.candidate_id).single()
+          const { data: details } = await supabase.from('candidate_profiles').select('*').eq('id', app.candidate_id).single()
+          return { ...app, candidate, candidate_details: details }
+        })
+      )
+      setApplicants(enriched)
+    } catch (err) {
+      console.error('Load applicants error:', err)
+    }
   }
 
   const matchCandidates = async (job: Job) => {
@@ -47,8 +76,13 @@ function CandidatesContent() {
       const { data: profiles } = await supabase.from('profiles').select('*').eq('role', 'candidate')
       const { data: candidateDetails } = await supabase.from('candidate_profiles').select('*')
       if (!profiles?.length) { setMatching(false); setLoading(false); return }
-      const candidates: CandidateProfile[] = profiles.map(p => ({ ...p, ...(candidateDetails?.find(c => c.id === p.id) || {}) }))
-      const res = await fetch('/api/match-candidates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ job, candidates }) })
+      const candidates: CandidateProfile[] = profiles.map(p => ({
+        ...p, ...(candidateDetails?.find(c => c.id === p.id) || {})
+      }))
+      const res = await fetch('/api/match-candidates', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job, candidates })
+      })
       const { matches: aiMatches } = await res.json()
       setMatches(aiMatches || [])
     } catch (err) { console.error(err) }
@@ -59,10 +93,13 @@ function CandidatesContent() {
     setStartingChat(candidateId)
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
-    const { data: existing } = await supabase.from('conversations').select('id').eq('candidate_id', candidateId).eq('company_id', session.user.id).maybeSingle()
+    const { data: existing } = await supabase.from('conversations')
+      .select('id').eq('candidate_id', candidateId).eq('company_id', session.user.id).maybeSingle()
     let convId = existing?.id
     if (!convId) {
-      const { data: newConv } = await supabase.from('conversations').insert({ candidate_id: candidateId, company_id: session.user.id, job_id: selectedJob?.id }).select('id').single()
+      const { data: newConv } = await supabase.from('conversations').insert({
+        candidate_id: candidateId, company_id: session.user.id, job_id: selectedJob?.id
+      }).select('id').single()
       convId = newConv?.id
     }
     window.location.href = `/chat/${convId}`
@@ -76,7 +113,6 @@ function CandidatesContent() {
 
   const scoreColor = (s: number) => s >= 85 ? '#059669' : s >= 70 ? '#6366f1' : '#888'
   const scoreBg = (s: number) => s >= 85 ? '#ecfdf5' : s >= 70 ? '#eef2ff' : '#f5f5f5'
-
   const statusColors: any = {
     applied: { bg: '#eff6ff', color: '#3b82f6', border: '#bfdbfe' },
     shortlisted: { bg: '#ecfdf5', color: '#059669', border: '#a7f3d0' },
@@ -95,8 +131,10 @@ function CandidatesContent() {
           </div>
           {jobs.length > 0 && (
             <div style={{ position: 'relative' }}>
-              <select value={selectedJob?.id || ''} onChange={e => { const j = jobs.find(j => j.id === e.target.value); if (j) setSelectedJob(j) }}
-                style={{ paddingRight: '2rem', appearance: 'none', cursor: 'pointer', minWidth: 200 }}>
+              <select
+                value={selectedJob?.id || ''}
+                onChange={e => { const j = jobs.find(j => j.id === e.target.value); if (j) setSelectedJob(j) }}
+                style={{ paddingRight: '2rem', appearance: 'none', cursor: 'pointer', minWidth: 220, color: '#1a1a1a', background: '#fff' }}>
                 {jobs.map(job => <option key={job.id} value={job.id}>{job.title}</option>)}
               </select>
               <ChevronDown size={14} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#888', pointerEvents: 'none' }} />
@@ -130,23 +168,29 @@ function CandidatesContent() {
           applicants.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem', color: '#888' }}>
               <Users size={40} style={{ marginBottom: 12, opacity: 0.3 }} />
-              <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 6 }}>No applicants yet</p>
+              <p style={{ fontSize: 15, fontWeight: 500, color: '#1a1a1a', marginBottom: 6 }}>No applicants yet</p>
               <p style={{ fontSize: 13 }}>Candidates who apply will appear here</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {applicants.map(app => (
+              {applicants.map((app: any) => (
                 <div key={app.id} style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 14, padding: '1.25rem', display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, flexShrink: 0 }}>
-                    {app.candidate?.name?.[0]?.toUpperCase()}
+                    {app.candidate?.name?.[0]?.toUpperCase() || '?'}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontWeight: 600, fontSize: 14, color: '#1a1a1a' }}>{app.candidate?.name}</span>
-                      <span style={{ background: statusColors[app.status]?.bg, color: statusColors[app.status]?.color, border: `1px solid ${statusColors[app.status]?.border}`, borderRadius: 20, fontSize: 11, fontWeight: 600, padding: '2px 8px', textTransform: 'capitalize' }}>{app.status}</span>
+                      <span style={{ fontWeight: 600, fontSize: 14, color: '#1a1a1a' }}>{app.candidate?.name || 'Unknown'}</span>
+                      <span style={{
+                        background: statusColors[app.status]?.bg,
+                        color: statusColors[app.status]?.color,
+                        border: `1px solid ${statusColors[app.status]?.border}`,
+                        borderRadius: 20, fontSize: 11, fontWeight: 600, padding: '2px 8px', textTransform: 'capitalize'
+                      }}>{app.status}</span>
                     </div>
                     <div style={{ fontSize: 12, color: '#888', marginBottom: 6 }}>
                       Applied {new Date(app.applied_at).toLocaleDateString()}
+                      {app.candidate_details?.college && ` · 🎓 ${app.candidate_details.college}`}
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {app.candidate_details?.skills?.slice(0, 5).map((s: string) => (
@@ -155,11 +199,16 @@ function CandidatesContent() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
-                    <button onClick={() => startChat(app.candidate_id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#6366f1', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
-                      {startingChat === app.candidate_id ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <MessageSquare size={12} />} Message
+                    <button onClick={() => startChat(app.candidate_id)} style={{
+                      display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px',
+                      background: '#6366f1', border: 'none', borderRadius: 8,
+                      color: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'Inter, sans-serif'
+                    }}>
+                      {startingChat === app.candidate_id ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <MessageSquare size={12} />}
+                      Message
                     </button>
                     <select value={app.status} onChange={e => updateStatus(app.id, e.target.value)}
-                      style={{ fontSize: 12, padding: '5px 8px', borderRadius: 8, cursor: 'pointer' }}>
+                      style={{ fontSize: 12, padding: '5px 8px', borderRadius: 8, cursor: 'pointer', color: '#1a1a1a' }}>
                       <option value="applied">Applied</option>
                       <option value="shortlisted">Shortlist</option>
                       <option value="rejected">Reject</option>
@@ -170,7 +219,6 @@ function CandidatesContent() {
             </div>
           )
         ) : (
-          // AI Ranked tab
           matching ? (
             <div style={{ background: 'linear-gradient(135deg, #eef2ff, #f5f3ff)', border: '1px solid #c7d2fe', borderRadius: 14, padding: '1.25rem', display: 'flex', alignItems: 'center', gap: 12 }}>
               <Loader2 size={18} color="#6366f1" style={{ animation: 'spin 1s linear infinite' }} />
@@ -179,7 +227,7 @@ function CandidatesContent() {
           ) : matches.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem', color: '#888' }}>
               <Briefcase size={40} style={{ marginBottom: 12, opacity: 0.3 }} />
-              <p style={{ fontSize: 15, fontWeight: 500 }}>No candidates found yet</p>
+              <p style={{ fontSize: 15, fontWeight: 500, color: '#1a1a1a' }}>No candidates found yet</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -200,15 +248,20 @@ function CandidatesContent() {
                       {candidate.college && `🎓 ${candidate.college} · `}
                       {candidate.experience_years === 0 ? '💼 Fresher' : `💼 ${candidate.experience_years}y exp`}
                     </div>
-                    <p style={{ fontSize: 12, color: '#999', background: '#fafafa', borderRadius: 8, padding: '6px 10px', marginBottom: 8 }}>✦ {match_reason}</p>
+                    <p style={{ fontSize: 12, color: '#666', background: '#fafafa', borderRadius: 8, padding: '6px 10px', marginBottom: 8 }}>✦ {match_reason}</p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {candidate.skills?.slice(0, 5).map((s: string) => (
                         <span key={s} style={{ background: '#eef2ff', color: '#6366f1', border: '1px solid #c7d2fe', borderRadius: 20, fontSize: 11, padding: '2px 8px' }}>{s}</span>
                       ))}
                     </div>
                   </div>
-                  <button onClick={() => startChat(candidate.id)} disabled={startingChat === candidate.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: '#6366f1', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'Inter, sans-serif', flexShrink: 0 }}>
-                    {startingChat === candidate.id ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <MessageSquare size={12} />} Message
+                  <button onClick={() => startChat(candidate.id)} disabled={startingChat === candidate.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
+                    background: '#6366f1', border: 'none', borderRadius: 8,
+                    color: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'Inter, sans-serif', flexShrink: 0
+                  }}>
+                    {startingChat === candidate.id ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <MessageSquare size={12} />}
+                    Message
                   </button>
                 </div>
               ))}
