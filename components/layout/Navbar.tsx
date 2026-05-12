@@ -35,6 +35,7 @@ export default function Navbar({ userRole }: NavbarProps) {
         {userRole === 'candidate' && (
           <>
             <Link href="/jobs" style={{ fontSize: '13px', color: '#888', textDecoration: 'none' }}>Find Jobs</Link>
+            <Link href="/applications" style={{ fontSize: '13px', color: '#888', textDecoration: 'none' }}>Applications</Link>
             <Link href="/conversations" style={{ fontSize: '13px', color: '#888', textDecoration: 'none' }}>Messages</Link>
             <Link href="/profile" style={{ fontSize: '13px', color: '#888', textDecoration: 'none' }}>Profile</Link>
           </>
