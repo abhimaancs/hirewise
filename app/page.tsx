@@ -6,132 +6,192 @@ export default function HomePage() {
     <>
       <Navbar userRole={null} />
 
-      {/* Hero */}
-      <div style={{ padding: '5rem 2rem 4rem', maxWidth: '860px', margin: '0 auto', textAlign: 'center' }}>
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          background: '#eef2ff', border: '1px solid #c7d2fe',
-          borderRadius: 999, padding: '5px 14px',
-          fontSize: 12, color: '#6366f1', fontWeight: 600, marginBottom: '1.5rem'
-        }}>
-          ✦ AI-Powered Job Matching
-        </div>
-
-        <h1 style={{
-          fontSize: 'clamp(2rem, 5vw, 3.25rem)', fontWeight: 700,
-          lineHeight: 1.15, color: '#1a1a1a', marginBottom: '1.25rem',
-          fontFamily: 'Inter, sans-serif'
-        }}>
-          Find jobs that actually<br />
-          <span style={{ color: '#6366f1' }}>match your skills</span>
-        </h1>
-
-        <p style={{ fontSize: '1.05rem', color: '#555', maxWidth: '520px', margin: '0 auto 2.5rem', lineHeight: 1.7 }}>
-          HireWise uses AI to semantically match your profile to the right roles — not just keywords.
-          Direct communication with companies, zero noise.
-        </p>
-
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '4rem' }}>
-          <Link href="/signup">
-            <button style={{
-              padding: '12px 28px', background: '#6366f1', border: 'none',
-              borderRadius: 10, color: '#fff', fontSize: 15, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'Inter, sans-serif'
-            }}>Find my matches →</button>
-          </Link>
-          <Link href="/signup?role=company">
-            <button style={{
-              padding: '12px 28px', background: '#fff',
-              border: '1px solid #d0d0d0', borderRadius: 10,
-              color: '#1a1a1a', fontSize: 15, fontWeight: 500,
-              cursor: 'pointer', fontFamily: 'Inter, sans-serif'
-            }}>Post a job</button>
-          </Link>
-        </div>
-
-        {/* How it works */}
-        <div style={{
-          background: '#fff', border: '1px solid #e8e8e8', borderRadius: 16,
-          padding: '2rem', maxWidth: 700, margin: '0 auto'
-        }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1.5rem' }}>
-            How it works
+      {/* Hero - Split layout */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'3rem', alignItems:'center', padding:'4rem 2.5rem 3rem', maxWidth:1200, margin:'0 auto' }}>
+        
+        {/* Left */}
+        <div>
+          <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'rgba(99,102,241,0.12)', border:'1px solid rgba(99,102,241,0.25)', borderRadius:999, padding:'5px 14px', fontSize:12, color:'#818cf8', fontWeight:700, marginBottom:'1.5rem' }}>
+            ✦ AI-Powered Hiring Platform
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+          <h1 style={{ fontSize:'clamp(2.5rem,4.5vw,3.75rem)', fontWeight:900, lineHeight:1.05, color:'#fff', marginBottom:'1.25rem', letterSpacing:'-2px' }}>
+            Hire Smarter<br />with <span style={{ color:'#818cf8' }}>AI</span>
+          </h1>
+          <p style={{ fontSize:15, color:'#9ca3af', lineHeight:1.8, marginBottom:'2rem', maxWidth:420 }}>
+            HireWise uses artificial intelligence to understand resumes, match the right talent to the right roles, and help companies build amazing teams.
+          </p>
+          <div style={{ display:'flex', gap:12, flexWrap:'wrap', marginBottom:'2.5rem' }}>
+            <Link href="/signup">
+              <button style={{ padding:'13px 28px', background:'#6366f1', border:'none', borderRadius:12, color:'#fff', fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'Inter,sans-serif', boxShadow:'0 0 24px rgba(99,102,241,0.35)' }}>Find Jobs →</button>
+            </Link>
+            <Link href="/signup?role=company">
+              <button style={{ padding:'13px 28px', background:'transparent', border:'1px solid rgba(255,255,255,0.15)', borderRadius:12, color:'#d1d5db', fontSize:15, fontWeight:600, cursor:'pointer', fontFamily:'Inter,sans-serif' }}>I'm a Recruiter</button>
+            </Link>
+          </div>
+
+          {/* Feature pills */}
+          <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
             {[
-              { step: '01', title: 'Create your profile', desc: 'Add your skills, experience and upload your resume' },
-              { step: '02', title: 'AI finds your matches', desc: 'Our AI scores every job based on your actual profile' },
-              { step: '03', title: 'Connect directly', desc: 'Chat with companies and get hired faster' },
-            ].map(s => (
-              <div key={s.step} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#6366f1', marginBottom: 8 }}>{s.step}</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a', marginBottom: 6 }}>{s.title}</div>
-                <div style={{ fontSize: 12, color: '#666', lineHeight: 1.6 }}>{s.desc}</div>
+              ['🤖','AI Resume Parsing','Extract skills & experience instantly'],
+              ['⚡','Smart Matching','Semantic match based on skills & context'],
+              ['📊','Ranked Results','See best matches with AI match score'],
+            ].map(([icon, title, desc]) => (
+              <div key={title as string} style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:12, padding:'10px 14px', display:'flex', alignItems:'center', gap:8, flex:1, minWidth:130 }}>
+                <span style={{ fontSize:16 }}>{icon}</span>
+                <div>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#e5e7eb', marginBottom:2 }}>{title}</div>
+                  <div style={{ fontSize:10, color:'#6b7280' }}>{desc}</div>
+                </div>
               </div>
             ))}
           </div>
         </div>
+
+        {/* Right - Dashboard Preview */}
+        <div style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:20, overflow:'hidden' }}>
+          {/* Dashboard header */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'1rem 1.25rem', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ width:28, height:28, background:'#6366f1', borderRadius:7, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, fontSize:13, color:'#fff' }}>H</div>
+            <div style={{ flex:1, marginLeft:'0.875rem' }}>
+              <div style={{ fontSize:14, fontWeight:700, color:'#fff' }}>Welcome back, Alex 👋</div>
+              <div style={{ fontSize:11, color:'#6b7280' }}>Here's your hiring overview</div>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{ position:'relative', width:28, height:28, background:'rgba(255,255,255,0.06)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12 }}>
+                🔔
+                <div style={{ position:'absolute', top:4, right:4, width:6, height:6, background:'#ef4444', borderRadius:'50%' }} />
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <div style={{ width:28, height:28, borderRadius:'50%', background:'linear-gradient(135deg,#6366f1,#8b5cf6)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:800, fontSize:10 }}>AT</div>
+                <div style={{ fontSize:10, color:'#9ca3af' }}>
+                  <div style={{ color:'#e5e7eb', fontWeight:600, fontSize:11 }}>Alex Thompson</div>
+                  Acme Corp.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display:'grid', gridTemplateColumns:'110px 1fr' }}>
+            {/* Sidebar */}
+            <div style={{ background:'rgba(255,255,255,0.02)', borderRight:'1px solid rgba(255,255,255,0.06)', padding:'1rem 0.75rem', display:'flex', flexDirection:'column', gap:2 }}>
+              {[['🏠','Overview',true],['💼','Jobs',false],['👥','Candidates',false],['💬','Messages',false],['📊','Analytics',false],['🔖','Saved Jobs',false],['⚙️','Settings',false]].map(([icon, label, active]) => (
+                <div key={label as string} style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 8px', borderRadius:8, background: active ? 'rgba(99,102,241,0.15)' : 'transparent', color: active ? '#818cf8' : '#6b7280', fontSize:11, fontWeight: active ? 600 : 400, cursor:'pointer' }}>
+                  <span>{icon}</span><span>{label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Main */}
+            <div style={{ padding:'1rem' }}>
+              {/* Stats */}
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6, marginBottom:'0.875rem' }}>
+                {[['💼','Active Jobs','24','↑ 12%'],['👥','Applicants','1,248','↑ 18%'],['🎯','AI Match','89%','↑ 9%'],['✅','Hires','16','↑ 14%']].map(([icon, label, val, trend]) => (
+                  <div key={label as string} style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'0.75rem' }}>
+                    <div style={{ fontSize:14, marginBottom:4 }}>{icon}</div>
+                    <div style={{ fontSize:9, color:'#6b7280', marginBottom:3 }}>{label}</div>
+                    <div style={{ fontSize:16, fontWeight:800, color:'#fff', letterSpacing:'-0.5px' }}>{val}</div>
+                    <div style={{ fontSize:9, color:'#34d399', marginTop:2 }}>{trend} this week</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bottom */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+                {/* Match distribution */}
+                <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'0.75rem' }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#e5e7eb', marginBottom:10 }}>AI Match Distribution</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                    <div style={{ width:64, height:64, borderRadius:'50%', background:'conic-gradient(#6366f1 0% 42%,#10b981 42% 75%,#f59e0b 75% 92%,#ef4444 92% 100%)', position:'relative', flexShrink:0 }}>
+                      <div style={{ position:'absolute', inset:8, background:'#161624', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        <div style={{ textAlign:'center' }}>
+                          <div style={{ fontSize:11, fontWeight:800, color:'#fff' }}>892</div>
+                          <div style={{ fontSize:7, color:'#6b7280' }}>Matches</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ flex:1 }}>
+                      {[['#6366f1','Excellent','42%'],['#10b981','Good','33%'],['#f59e0b','Fair','17%'],['#ef4444','Poor','8%']].map(([color, label, pct]) => (
+                        <div key={label as string} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                            <div style={{ width:6, height:6, borderRadius:'50%', background: color as string }} />
+                            <span style={{ fontSize:9, color:'#9ca3af' }}>{label}</span>
+                          </div>
+                          <span style={{ fontSize:9, color:'#e5e7eb', fontWeight:600 }}>{pct}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ marginTop:8, background:'rgba(99,102,241,0.1)', border:'1px solid rgba(99,102,241,0.2)', borderRadius:7, padding:'6px 8px' }}>
+                    <div style={{ fontSize:9, fontWeight:700, color:'#818cf8', marginBottom:2 }}>⭐ Upgrade to Pro</div>
+                    <div style={{ fontSize:8, color:'#6b7280', marginBottom:5 }}>Unlock advanced AI insights.</div>
+                    <button style={{ background:'#6366f1', border:'none', borderRadius:5, padding:'3px 8px', fontSize:9, fontWeight:700, color:'#fff', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>Upgrade Now</button>
+                  </div>
+                </div>
+
+                {/* Top candidates */}
+                <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'0.75rem' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+                    <div style={{ fontSize:11, fontWeight:700, color:'#e5e7eb' }}>Top Matched</div>
+                    <span style={{ fontSize:9, color:'#818cf8', cursor:'pointer' }}>View all</span>
+                  </div>
+                  {[['SJ','Sarah Johnson','Frontend Developer','96%'],['MC','Michael Chen','Full Stack Engineer','94%'],['PP','Priya Patel','UI/UX Designer','92%']].map(([init, name, role, score]) => (
+                    <div key={name as string} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
+                      <div style={{ width:26, height:26, borderRadius:'50%', background:'linear-gradient(135deg,#6366f1,#8b5cf6)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:800, fontSize:9, flexShrink:0 }}>{init}</div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:10, fontWeight:600, color:'#e5e7eb' }}>{name}</div>
+                        <div style={{ fontSize:9, color:'#6b7280' }}>{role}</div>
+                      </div>
+                      <div style={{ background:'rgba(16,185,129,0.15)', color:'#34d399', border:'1px solid rgba(16,185,129,0.25)', borderRadius:6, fontSize:10, fontWeight:800, padding:'1px 6px' }}>{score}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Trusted by */}
+      <div style={{ padding:'2.5rem', borderTop:'1px solid rgba(255,255,255,0.06)', borderBottom:'1px solid rgba(255,255,255,0.06)', textAlign:'center' }}>
+        <div style={{ fontSize:11, fontWeight:700, color:'#374151', letterSpacing:'0.15em', textTransform:'uppercase', marginBottom:'1.5rem' }}>TRUSTED BY COMPANIES OF ALL SIZES</div>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'3rem', flexWrap:'wrap' }}>
+          {['Microsoft','Google','Airbnb','Spotify','Notion','Slack'].map(c => (
+            <div key={c} style={{ fontSize:16, fontWeight:700, color:'#374151', letterSpacing:'-0.3px' }}>{c}</div>
+          ))}
+        </div>
       </div>
 
       {/* Features */}
-      <div style={{ padding: '1rem 2rem 3rem', maxWidth: '1000px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#1a1a1a', marginBottom: 8 }}>Everything you need to get hired</div>
-          <div style={{ fontSize: 14, color: '#666' }}>Built for candidates and companies looking for a smarter way to connect</div>
+      <div style={{ padding:'4rem 2.5rem', maxWidth:1200, margin:'0 auto' }}>
+        <div style={{ textAlign:'center', marginBottom:'2.5rem' }}>
+          <div style={{ fontSize:26, fontWeight:900, color:'#fff', letterSpacing:'-1px', marginBottom:8 }}>Built different from day one</div>
+          <div style={{ fontSize:14, color:'#6b7280' }}>Every feature designed around AI-first matching</div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '1rem' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))', gap:14 }}>
           {[
-            { icon: '🤖', bg: '#eef2ff', title: 'AI Resume Parsing', desc: 'Upload your resume and AI automatically extracts your skills and experience.' },
-            { icon: '🎯', bg: '#ecfdf5', title: 'Semantic Matching', desc: 'Goes beyond keywords — understands what you actually know and can do.' },
-            { icon: '💬', bg: '#fdf4ff', title: 'Direct Messaging', desc: 'Talk directly with hiring managers without going through recruiters.' },
-            { icon: '📊', bg: '#fffbeb', title: 'Match Scores', desc: 'See exactly why you matched a job and what skills overlap.' },
-          ].map(f => (
-            <div key={f.title} style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 14, padding: '1.25rem' }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: f.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem', fontSize: 16 }}>{f.icon}</div>
-              <h4 style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a', marginBottom: '0.4rem' }}>{f.title}</h4>
-              <p style={{ fontSize: 13, color: '#666', lineHeight: 1.6 }}>{f.desc}</p>
+            ['🤖','#6366f1','AI-Powered Matching','We go beyond keywords to match real skills and experience.'],
+            ['📄','#8b5cf6','Resume Understanding','Our AI reads and understands resumes like a human.'],
+            ['💬','#06b6d4','Real-time Messaging','Connect and chat directly within the platform.'],
+            ['🛡️','#10b981','Secure & Reliable','Your data is safe with enterprise-grade security.'],
+          ].map(([icon, color, title, desc]) => (
+            <div key={title as string} style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:18, padding:'1.5rem', transition:'all 0.25s', cursor:'default' }}
+              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = `${color}40`; el.style.background = 'rgba(255,255,255,0.05)'; el.style.transform = 'translateY(-2px)' }}
+              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'rgba(255,255,255,0.07)'; el.style.background = 'rgba(255,255,255,0.03)'; el.style.transform = 'translateY(0)' }}
+            >
+              <div style={{ width:44, height:44, borderRadius:12, background:`${color}20`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, marginBottom:14 }}>{icon}</div>
+              <div style={{ fontSize:15, fontWeight:700, color:'#f1f1f1', marginBottom:8, letterSpacing:'-0.2px' }}>{title}</div>
+              <div style={{ fontSize:13, color:'#6b7280', lineHeight:1.65 }}>{desc}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* For candidates and companies */}
-      <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-          <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 16, padding: '2rem' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>For Candidates</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#1a1a1a', marginBottom: 12 }}>Find your perfect role faster</div>
-            <div style={{ fontSize: 13, color: '#555', lineHeight: 1.7, marginBottom: '1.5rem' }}>
-              Upload your resume, add your skills, and let AI find the jobs where you're the best fit. No more applying blindly.
-            </div>
-            <Link href="/signup">
-              <button style={{ padding: '10px 20px', background: '#6366f1', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
-                Get started →
-              </button>
-            </Link>
-          </div>
-
-          <div style={{ background: '#f0fdf4', border: '1px solid #a7f3d0', borderRadius: 16, padding: '2rem' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>For Companies</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#1a1a1a', marginBottom: 12 }}>Find the right candidate, fast</div>
-            <div style={{ fontSize: 13, color: '#555', lineHeight: 1.7, marginBottom: '1.5rem' }}>
-              Post a job and AI instantly ranks all candidates by how well they fit your requirements. Message top matches directly.
-            </div>
-            <Link href="/signup?role=company">
-              <button style={{ padding: '10px 20px', background: '#059669', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
-                Post a job →
-              </button>
-            </Link>
-          </div>
-        </div>
-      </div>
-
       {/* CTA */}
-      <div style={{ textAlign: 'center', padding: '5rem 2rem' }}>
-        <div style={{ fontSize: 22, fontWeight: 700, color: '#1a1a1a', marginBottom: 8 }}>Ready to find your match?</div>
-        <div style={{ fontSize: 14, color: '#666', marginBottom: '1.5rem' }}>Join HireWise and let AI do the hard work</div>
+      <div style={{ textAlign:'center', padding:'5rem 2rem', borderTop:'1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ fontSize:30, fontWeight:900, color:'#fff', letterSpacing:'-1.5px', marginBottom:8 }}>Ready to hire smarter?</div>
+        <div style={{ fontSize:14, color:'#6b7280', marginBottom:'1.75rem' }}>Join thousands of candidates and companies on HireWise</div>
         <Link href="/signup">
-          <button style={{ padding: '13px 32px', background: '#6366f1', border: 'none', borderRadius: 10, color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+          <button style={{ padding:'14px 40px', background:'#6366f1', border:'none', borderRadius:14, color:'#fff', fontSize:16, fontWeight:800, cursor:'pointer', fontFamily:'Inter,sans-serif', boxShadow:'0 0 30px rgba(99,102,241,0.35)', letterSpacing:'-0.5px' }}>
             Get started free →
           </button>
         </Link>

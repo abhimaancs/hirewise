@@ -10,12 +10,12 @@ export default function CompanyProfilePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [userId, setUserId] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string|null>(null)
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { window.location.href = '/login'; return }
+      const { data:{ session } } = await supabase.auth.getSession()
+      if (!session) { window.location.href='/login'; return }
       setUserId(session.user.id)
       loadProfile(session.user.id)
     }
@@ -24,109 +24,64 @@ export default function CompanyProfilePage() {
 
   const loadProfile = async (uid: string) => {
     try {
-      const { data: p } = await supabase.from('profiles').select('*').eq('id', uid).single()
-      const { data: c } = await supabase.from('company_profiles').select('*').eq('id', uid).single()
-      setProfile({ ...p, ...c })
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
+      const { data:p } = await supabase.from('profiles').select('*').eq('id',uid).single()
+      const { data:c } = await supabase.from('company_profiles').select('*').eq('id',uid).single()
+      setProfile({...p,...c})
+    } catch(err) { console.error(err) }
+    finally { setLoading(false) }
   }
 
   const handleSave = async () => {
     if (!userId) return
     setSaving(true)
     try {
-      await supabase.from('profiles').update({ name: profile.name }).eq('id', userId)
-      await supabase.from('company_profiles').upsert({
-        id: userId,
-        company_name: profile.company_name || '',
-        website: profile.website || '',
-        description: profile.description || '',
-        location: profile.location || ''
-      })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2500)
-    } catch (err) {
-      console.error(err)
-      alert('Failed to save. Please try again.')
-    } finally {
-      setSaving(false)
-    }
+      await supabase.from('profiles').update({ name:profile.name }).eq('id',userId)
+      await supabase.from('company_profiles').upsert({ id:userId, company_name:profile.company_name||'', website:profile.website||'', description:profile.description||'', location:profile.location||'' })
+      setSaved(true); setTimeout(()=>setSaved(false),2500)
+    } catch(err) { console.error(err); alert('Failed to save') }
+    finally { setSaving(false) }
   }
 
-  const s = {
-    section: { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.5rem', marginBottom: '1.25rem' } as React.CSSProperties,
-    label: { display: 'block', fontSize: '0.8rem', color: 'var(--muted)', marginBottom: '0.4rem' } as React.CSSProperties,
-    group: { marginBottom: '1rem' } as React.CSSProperties,
-  }
+  const lbl = { fontSize:11, fontWeight:700, color:'#6b7280', textTransform:'uppercase' as const, letterSpacing:'0.06em', marginBottom:6, display:'block' }
 
   if (loading) return (
     <>
-      <Navbar userRole="company" />
-      <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--muted)' }}>
-        <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
+      <Navbar userRole="company"/>
+      <div style={{ textAlign:'center', padding:'5rem', color:'#6b7280' }}>
+        <Loader2 size={28} style={{ animation:'spin 1s linear infinite' }}/>
       </div>
     </>
   )
 
   return (
     <>
-      <Navbar userRole="company" />
-      <div style={{ maxWidth: '700px', margin: '0 auto', padding: '2rem 1.5rem' }}>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <Navbar userRole="company"/>
+      <div style={{ maxWidth:700, margin:'0 auto', padding:'2rem 1.5rem' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'2rem' }}>
           <div>
-            <h1 style={{ fontFamily: 'var(--font-syne)', fontSize: '1.5rem', fontWeight: 700, color: '#fff' }}>Company Profile</h1>
-            <p style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>Update your company details</p>
+            <h1 style={{ fontSize:22, fontWeight:800, color:'#fff', letterSpacing:'-0.5px', marginBottom:4 }}>Company Profile</h1>
+            <p style={{ fontSize:13, color:'#6b7280' }}>Update your company details</p>
           </div>
-          <button onClick={handleSave} disabled={saving} style={{
-            display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '0.625rem 1.25rem',
-            background: saved ? 'rgba(16,185,129,0.2)' : 'var(--accent)',
-            border: saved ? '1px solid var(--green)' : 'none',
-            borderRadius: '8px', color: saved ? 'var(--green)' : '#fff',
-            fontSize: '0.875rem', cursor: saving ? 'not-allowed' : 'pointer',
-            fontFamily: 'var(--font-dm)', opacity: saving ? 0.7 : 1
-          }}>
-            {saving ? <Loader2 size={14} /> : saved ? <CheckCircle size={14} /> : null}
-            {saving ? 'Saving...' : saved ? 'Saved!' : 'Save profile'}
+          <button onClick={handleSave} disabled={saving} style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 18px', background:saved?'rgba(16,185,129,0.15)':'#6366f1', border:saved?'1px solid rgba(16,185,129,0.3)':'none', borderRadius:10, color:saved?'#34d399':'#fff', fontSize:13, fontWeight:700, cursor:saving?'not-allowed':'pointer', fontFamily:'Inter,sans-serif', opacity:saving?0.7:1 }}>
+            {saving?<Loader2 size={14} style={{ animation:'spin 1s linear infinite' }}/>:saved?<CheckCircle size={14}/>:null}
+            {saving?'Saving...':saved?'Saved!':'Save profile'}
           </button>
         </div>
 
-        <div style={s.section}>
-          <div style={{ fontFamily: 'var(--font-syne)', fontSize: '0.9rem', fontWeight: 600, color: '#fff', marginBottom: '1rem' }}>
-            Company Info
+        <div style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:18, padding:'1.5rem' }}>
+          <div style={{ fontSize:14, fontWeight:700, color:'#f1f1f1', marginBottom:16 }}>Company Info</div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+            <div><label style={lbl}>Contact name</label><input value={profile.name||''} onChange={e=>setProfile({...profile,name:e.target.value})} placeholder="Your name"/></div>
+            <div><label style={lbl}>Company name</label><input value={profile.company_name||''} onChange={e=>setProfile({...profile,company_name:e.target.value})} placeholder="Acme Corp"/></div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-            <div style={s.group}>
-              <label style={s.label}>Contact name</label>
-              <input value={profile.name || ''} onChange={e => setProfile({ ...profile, name: e.target.value })} placeholder="Your name" />
-            </div>
-            <div style={s.group}>
-              <label style={s.label}>Company name</label>
-              <input value={profile.company_name || ''} onChange={e => setProfile({ ...profile, company_name: e.target.value })} placeholder="Acme Corp" />
-            </div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+            <div><label style={lbl}>Location</label><input value={profile.location||''} onChange={e=>setProfile({...profile,location:e.target.value})} placeholder="Bangalore, India"/></div>
+            <div><label style={lbl}>Website</label><input value={profile.website||''} onChange={e=>setProfile({...profile,website:e.target.value})} placeholder="https://yourcompany.com"/></div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-            <div style={s.group}>
-              <label style={s.label}>Location</label>
-              <input value={profile.location || ''} onChange={e => setProfile({ ...profile, location: e.target.value })} placeholder="Bangalore, India" />
-            </div>
-            <div style={s.group}>
-              <label style={s.label}>Website</label>
-              <input value={profile.website || ''} onChange={e => setProfile({ ...profile, website: e.target.value })} placeholder="https://yourcompany.com" />
-            </div>
-          </div>
-          <div style={s.group}>
-            <label style={s.label}>Company description</label>
-            <textarea value={profile.description || ''} onChange={e => setProfile({ ...profile, description: e.target.value })}
-              placeholder="Tell candidates about your company, culture, and what you're building..."
-              rows={4} style={{ resize: 'vertical' }} />
+          <div><label style={lbl}>Company description</label>
+            <textarea value={profile.description||''} onChange={e=>setProfile({...profile,description:e.target.value})} placeholder="Tell candidates about your company, culture, and what you're building..." rows={4} style={{ resize:'vertical' }}/>
           </div>
         </div>
-
       </div>
     </>
   )
