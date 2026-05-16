@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 
@@ -28,8 +30,6 @@ export default function HomePage() {
               <button style={{ padding:'13px 28px', background:'transparent', border:'1px solid rgba(255,255,255,0.15)', borderRadius:12, color:'#d1d5db', fontSize:15, fontWeight:600, cursor:'pointer', fontFamily:'Inter,sans-serif' }}>I'm a Recruiter</button>
             </Link>
           </div>
-
-          {/* Feature pills */}
           <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
             {[
               ['🤖','AI Resume Parsing','Extract skills & experience instantly'],
@@ -39,8 +39,8 @@ export default function HomePage() {
               <div key={title as string} style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:12, padding:'10px 14px', display:'flex', alignItems:'center', gap:8, flex:1, minWidth:130 }}>
                 <span style={{ fontSize:16 }}>{icon}</span>
                 <div>
-                  <div style={{ fontSize:11, fontWeight:700, color:'#e5e7eb', marginBottom:2 }}>{title}</div>
-                  <div style={{ fontSize:10, color:'#6b7280' }}>{desc}</div>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#e5e7eb', marginBottom:2 }}>{title as string}</div>
+                  <div style={{ fontSize:10, color:'#6b7280' }}>{desc as string}</div>
                 </div>
               </div>
             ))}
@@ -49,7 +49,6 @@ export default function HomePage() {
 
         {/* Right - Dashboard Preview */}
         <div style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:20, overflow:'hidden' }}>
-          {/* Dashboard header */}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'1rem 1.25rem', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
             <div style={{ width:28, height:28, background:'#6366f1', borderRadius:7, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, fontSize:13, color:'#fff' }}>H</div>
             <div style={{ flex:1, marginLeft:'0.875rem' }}>
@@ -57,51 +56,40 @@ export default function HomePage() {
               <div style={{ fontSize:11, color:'#6b7280' }}>Here's your hiring overview</div>
             </div>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <div style={{ position:'relative', width:28, height:28, background:'rgba(255,255,255,0.06)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12 }}>
-                🔔
-                <div style={{ position:'absolute', top:4, right:4, width:6, height:6, background:'#ef4444', borderRadius:'50%' }} />
-              </div>
-              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                <div style={{ width:28, height:28, borderRadius:'50%', background:'linear-gradient(135deg,#6366f1,#8b5cf6)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:800, fontSize:10 }}>AT</div>
-                <div style={{ fontSize:10, color:'#9ca3af' }}>
-                  <div style={{ color:'#e5e7eb', fontWeight:600, fontSize:11 }}>Alex Thompson</div>
-                  Acme Corp.
-                </div>
+              <div style={{ width:28, height:28, borderRadius:'50%', background:'linear-gradient(135deg,#6366f1,#8b5cf6)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:800, fontSize:10 }}>AT</div>
+              <div style={{ fontSize:10, color:'#9ca3af' }}>
+                <div style={{ color:'#e5e7eb', fontWeight:600, fontSize:11 }}>Alex Thompson</div>
+                Acme Corp.
               </div>
             </div>
           </div>
 
           <div style={{ display:'grid', gridTemplateColumns:'110px 1fr' }}>
-            {/* Sidebar */}
             <div style={{ background:'rgba(255,255,255,0.02)', borderRight:'1px solid rgba(255,255,255,0.06)', padding:'1rem 0.75rem', display:'flex', flexDirection:'column', gap:2 }}>
-              {[['🏠','Overview',true],['💼','Jobs',false],['👥','Candidates',false],['💬','Messages',false],['📊','Analytics',false],['🔖','Saved Jobs',false],['⚙️','Settings',false]].map(([icon, label, active]) => (
+              {[['🏠','Overview',true],['💼','Jobs',false],['👥','Candidates',false],['💬','Messages',false],['📊','Analytics',false]].map(([icon, label, active]) => (
                 <div key={label as string} style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 8px', borderRadius:8, background: active ? 'rgba(99,102,241,0.15)' : 'transparent', color: active ? '#818cf8' : '#6b7280', fontSize:11, fontWeight: active ? 600 : 400, cursor:'pointer' }}>
-                  <span>{icon}</span><span>{label}</span>
+                  <span>{icon as string}</span><span>{label as string}</span>
                 </div>
               ))}
             </div>
 
-            {/* Main */}
             <div style={{ padding:'1rem' }}>
-              {/* Stats */}
               <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6, marginBottom:'0.875rem' }}>
                 {[['💼','Active Jobs','24','↑ 12%'],['👥','Applicants','1,248','↑ 18%'],['🎯','AI Match','89%','↑ 9%'],['✅','Hires','16','↑ 14%']].map(([icon, label, val, trend]) => (
                   <div key={label as string} style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'0.75rem' }}>
-                    <div style={{ fontSize:14, marginBottom:4 }}>{icon}</div>
-                    <div style={{ fontSize:9, color:'#6b7280', marginBottom:3 }}>{label}</div>
-                    <div style={{ fontSize:16, fontWeight:800, color:'#fff', letterSpacing:'-0.5px' }}>{val}</div>
-                    <div style={{ fontSize:9, color:'#34d399', marginTop:2 }}>{trend} this week</div>
+                    <div style={{ fontSize:14, marginBottom:4 }}>{icon as string}</div>
+                    <div style={{ fontSize:9, color:'#6b7280', marginBottom:3 }}>{label as string}</div>
+                    <div style={{ fontSize:16, fontWeight:800, color:'#fff', letterSpacing:'-0.5px' }}>{val as string}</div>
+                    <div style={{ fontSize:9, color:'#34d399', marginTop:2 }}>{trend as string} this week</div>
                   </div>
                 ))}
               </div>
 
-              {/* Bottom */}
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
-                {/* Match distribution */}
                 <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'0.75rem' }}>
                   <div style={{ fontSize:11, fontWeight:700, color:'#e5e7eb', marginBottom:10 }}>AI Match Distribution</div>
                   <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                    <div style={{ width:64, height:64, borderRadius:'50%', background:'conic-gradient(#6366f1 0% 42%,#10b981 42% 75%,#f59e0b 75% 92%,#ef4444 92% 100%)', position:'relative', flexShrink:0 }}>
+                    <div style={{ width:60, height:60, borderRadius:'50%', background:'conic-gradient(#6366f1 0% 42%,#10b981 42% 75%,#f59e0b 75% 92%,#ef4444 92% 100%)', position:'relative', flexShrink:0 }}>
                       <div style={{ position:'absolute', inset:8, background:'#161624', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}>
                         <div style={{ textAlign:'center' }}>
                           <div style={{ fontSize:11, fontWeight:800, color:'#fff' }}>892</div>
@@ -114,34 +102,28 @@ export default function HomePage() {
                         <div key={label as string} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:4 }}>
                             <div style={{ width:6, height:6, borderRadius:'50%', background: color as string }} />
-                            <span style={{ fontSize:9, color:'#9ca3af' }}>{label}</span>
+                            <span style={{ fontSize:9, color:'#9ca3af' }}>{label as string}</span>
                           </div>
-                          <span style={{ fontSize:9, color:'#e5e7eb', fontWeight:600 }}>{pct}</span>
+                          <span style={{ fontSize:9, color:'#e5e7eb', fontWeight:600 }}>{pct as string}</span>
                         </div>
                       ))}
                     </div>
                   </div>
-                  <div style={{ marginTop:8, background:'rgba(99,102,241,0.1)', border:'1px solid rgba(99,102,241,0.2)', borderRadius:7, padding:'6px 8px' }}>
-                    <div style={{ fontSize:9, fontWeight:700, color:'#818cf8', marginBottom:2 }}>⭐ Upgrade to Pro</div>
-                    <div style={{ fontSize:8, color:'#6b7280', marginBottom:5 }}>Unlock advanced AI insights.</div>
-                    <button style={{ background:'#6366f1', border:'none', borderRadius:5, padding:'3px 8px', fontSize:9, fontWeight:700, color:'#fff', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>Upgrade Now</button>
-                  </div>
                 </div>
 
-                {/* Top candidates */}
                 <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'0.75rem' }}>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
                     <div style={{ fontSize:11, fontWeight:700, color:'#e5e7eb' }}>Top Matched</div>
-                    <span style={{ fontSize:9, color:'#818cf8', cursor:'pointer' }}>View all</span>
+                    <span style={{ fontSize:9, color:'#818cf8' }}>View all</span>
                   </div>
                   {[['SJ','Sarah Johnson','Frontend Developer','96%'],['MC','Michael Chen','Full Stack Engineer','94%'],['PP','Priya Patel','UI/UX Designer','92%']].map(([init, name, role, score]) => (
                     <div key={name as string} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
-                      <div style={{ width:26, height:26, borderRadius:'50%', background:'linear-gradient(135deg,#6366f1,#8b5cf6)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:800, fontSize:9, flexShrink:0 }}>{init}</div>
+                      <div style={{ width:26, height:26, borderRadius:'50%', background:'linear-gradient(135deg,#6366f1,#8b5cf6)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:800, fontSize:9, flexShrink:0 }}>{init as string}</div>
                       <div style={{ flex:1 }}>
-                        <div style={{ fontSize:10, fontWeight:600, color:'#e5e7eb' }}>{name}</div>
-                        <div style={{ fontSize:9, color:'#6b7280' }}>{role}</div>
+                        <div style={{ fontSize:10, fontWeight:600, color:'#e5e7eb' }}>{name as string}</div>
+                        <div style={{ fontSize:9, color:'#6b7280' }}>{role as string}</div>
                       </div>
-                      <div style={{ background:'rgba(16,185,129,0.15)', color:'#34d399', border:'1px solid rgba(16,185,129,0.25)', borderRadius:6, fontSize:10, fontWeight:800, padding:'1px 6px' }}>{score}</div>
+                      <div style={{ background:'rgba(16,185,129,0.15)', color:'#34d399', border:'1px solid rgba(16,185,129,0.25)', borderRadius:6, fontSize:10, fontWeight:800, padding:'1px 6px' }}>{score as string}</div>
                     </div>
                   ))}
                 </div>
@@ -174,13 +156,10 @@ export default function HomePage() {
             ['💬','#06b6d4','Real-time Messaging','Connect and chat directly within the platform.'],
             ['🛡️','#10b981','Secure & Reliable','Your data is safe with enterprise-grade security.'],
           ].map(([icon, color, title, desc]) => (
-            <div key={title as string} style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:18, padding:'1.5rem', transition:'all 0.25s', cursor:'default' }}
-              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = `${color}40`; el.style.background = 'rgba(255,255,255,0.05)'; el.style.transform = 'translateY(-2px)' }}
-              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'rgba(255,255,255,0.07)'; el.style.background = 'rgba(255,255,255,0.03)'; el.style.transform = 'translateY(0)' }}
-            >
-              <div style={{ width:44, height:44, borderRadius:12, background:`${color}20`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, marginBottom:14 }}>{icon}</div>
-              <div style={{ fontSize:15, fontWeight:700, color:'#f1f1f1', marginBottom:8, letterSpacing:'-0.2px' }}>{title}</div>
-              <div style={{ fontSize:13, color:'#6b7280', lineHeight:1.65 }}>{desc}</div>
+            <div key={title as string} style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:18, padding:'1.5rem' }}>
+              <div style={{ width:44, height:44, borderRadius:12, background:`${color as string}20`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, marginBottom:14 }}>{icon as string}</div>
+              <div style={{ fontSize:15, fontWeight:700, color:'#f1f1f1', marginBottom:8 }}>{title as string}</div>
+              <div style={{ fontSize:13, color:'#6b7280', lineHeight:1.65 }}>{desc as string}</div>
             </div>
           ))}
         </div>
@@ -191,7 +170,7 @@ export default function HomePage() {
         <div style={{ fontSize:30, fontWeight:900, color:'#fff', letterSpacing:'-1.5px', marginBottom:8 }}>Ready to hire smarter?</div>
         <div style={{ fontSize:14, color:'#6b7280', marginBottom:'1.75rem' }}>Join thousands of candidates and companies on HireWise</div>
         <Link href="/signup">
-          <button style={{ padding:'14px 40px', background:'#6366f1', border:'none', borderRadius:14, color:'#fff', fontSize:16, fontWeight:800, cursor:'pointer', fontFamily:'Inter,sans-serif', boxShadow:'0 0 30px rgba(99,102,241,0.35)', letterSpacing:'-0.5px' }}>
+          <button style={{ padding:'14px 40px', background:'#6366f1', border:'none', borderRadius:14, color:'#fff', fontSize:16, fontWeight:800, cursor:'pointer', fontFamily:'Inter,sans-serif', boxShadow:'0 0 30px rgba(99,102,241,0.35)' }}>
             Get started free →
           </button>
         </Link>
