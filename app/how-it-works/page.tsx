@@ -7,30 +7,29 @@ export default function HowItWorksPage() {
   return (
     <>
       <Navbar userRole={null} />
-
       <style>{`
         @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
         @keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
         .fade-up{animation:fadeUp .5s ease forwards}
         .fade-up-1{animation:fadeUp .5s .1s ease both}
         .fade-up-2{animation:fadeUp .5s .2s ease both}
         .fade-up-3{animation:fadeUp .5s .3s ease both}
         .fade-up-4{animation:fadeUp .5s .4s ease both}
-        .step-card{transition:all .3s!important}
+        .step-card{transition:all .3s}
         .step-card:hover{transform:translateY(-3px)!important;box-shadow:0 12px 40px rgba(0,0,0,.3)!important}
-        .faq-item{transition:all .2s!important}
+        .faq-item{transition:all .2s}
         .faq-item:hover{border-color:rgba(99,102,241,.3)!important;background:rgba(255,255,255,.04)!important}
-        .cta-btn{transition:all .2s!important}
+        .cta-btn{transition:all .2s}
         .cta-btn:hover{transform:translateY(-2px)!important;filter:brightness(1.1)!important}
-        .ai-dot{animation:pulse 2s infinite}
+        .back-btn{transition:all .2s}
+        .back-btn:hover{color:#e5e7eb!important;border-color:rgba(255,255,255,.2)!important}
         .ai-item{animation:slideIn .4s ease both}
         .ai-item:nth-child(1){animation-delay:.1s}
         .ai-item:nth-child(2){animation-delay:.3s}
-        .ai-item:nth-child(3){animation-delay:.5s}
+        .ai-dot{animation:pulse 2s infinite}
         @media(max-width:768px){
           .steps-grid{grid-template-columns:1fr!important}
-          .compare-grid{grid-template-columns:1fr!important}
           .roles-grid{grid-template-columns:1fr!important}
         }
       `}</style>
@@ -40,7 +39,14 @@ export default function HowItWorksPage() {
         <div style={{position:'absolute',bottom:'10%',right:'10%',width:400,height:400,background:'radial-gradient(circle,rgba(16,185,129,.03) 0%,transparent 70%)'}}/>
       </div>
 
-      <div style={{maxWidth:1100,margin:'0 auto',padding:'3rem 2rem',position:'relative',zIndex:1}}>
+      <div style={{maxWidth:1100,margin:'0 auto',padding:'2.5rem 2rem',position:'relative',zIndex:1}}>
+
+        {/* Back button */}
+        <Link href="/" style={{textDecoration:'none'}}>
+          <button className="back-btn" style={{display:'inline-flex',alignItems:'center',gap:6,padding:'7px 14px',background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:9,color:'#9ca3af',fontSize:13,fontWeight:500,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:'2rem'}}>
+            ← Back
+          </button>
+        </Link>
 
         {/* Header */}
         <div className="fade-up" style={{textAlign:'center',marginBottom:'4rem'}}>
@@ -57,16 +63,12 @@ export default function HowItWorksPage() {
         </div>
 
         {/* Steps */}
-        <div className="steps-grid fade-up-1" style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:20,marginBottom:'5rem',position:'relative'}}>
-          {/* Connector */}
-          <div style={{position:'absolute',top:44,left:'calc(33% + 20px)',width:'calc(34% - 40px)',height:2,background:'linear-gradient(90deg,rgba(99,102,241,.5),rgba(139,92,246,.5))',zIndex:0}}/>
-          <div style={{position:'absolute',top:44,left:'calc(66% + 20px)',width:'calc(34% - 40px)',height:2,background:'linear-gradient(90deg,rgba(139,92,246,.5),rgba(16,185,129,.5))',zIndex:0}}/>
-
+        <div className="steps-grid fade-up-1" style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:20,marginBottom:'5rem'}}>
           {[
             {
-              step:'01', icon:'📄', color:'#6366f1', bg:'rgba(99,102,241,.12)', border:'rgba(99,102,241,.25)',
+              step:'01',icon:'📄',color:'#6366f1',bg:'rgba(99,102,241,.12)',border:'rgba(99,102,241,.25)',
               title:'Build your profile',
-              desc:'Upload your resume or fill in your skills manually. Our AI reads your resume and automatically extracts your skills, experience level, and strengths — no manual work needed.',
+              desc:'Upload your resume or fill in skills manually. Our AI reads your resume and automatically extracts your skills, experience level, and strengths — no manual work needed.',
               demo:(
                 <div style={{background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.07)',borderRadius:10,padding:'10px 12px',marginTop:14}}>
                   <div style={{fontSize:10,color:'#6b7280',marginBottom:8}}>📎 resume.pdf uploaded</div>
@@ -84,8 +86,8 @@ export default function HowItWorksPage() {
               )
             },
             {
-              step:'02', icon:'🤖', color:'#8b5cf6', bg:'rgba(139,92,246,.12)', border:'rgba(139,92,246,.25)',
-              title:'AI finds your matches',
+              step:'02',icon:'🤖',color:'#8b5cf6',bg:'rgba(139,92,246,.12)',border:'rgba(139,92,246,.25)',
+              title:'AI scores your matches',
               desc:'Our AI semantically understands your profile — not just keywords. It scores every available job from 0 to 100 based on how well your skills, experience, and context match the role.',
               demo:(
                 <div style={{background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.07)',borderRadius:10,padding:'10px 12px',marginTop:14}}>
@@ -101,9 +103,9 @@ export default function HowItWorksPage() {
               )
             },
             {
-              step:'03', icon:'💬', color:'#10b981', bg:'rgba(16,185,129,.12)', border:'rgba(16,185,129,.25)',
+              step:'03',icon:'💬',color:'#10b981',bg:'rgba(16,185,129,.12)',border:'rgba(16,185,129,.25)',
               title:'Apply & connect directly',
-              desc:'Apply with one click and chat directly with hiring managers. No recruiters, no gatekeepers, no waiting weeks for a response. Real conversations that lead to real offers.',
+              desc:'Apply with one click and chat directly with hiring managers. No recruiters, no gatekeepers, no waiting weeks. Real conversations that lead to real offers.',
               demo:(
                 <div style={{background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.07)',borderRadius:10,padding:'10px 12px',marginTop:14}}>
                   <div className="ai-item" style={{display:'flex',alignItems:'flex-start',gap:6,marginBottom:8}}>
@@ -117,8 +119,8 @@ export default function HowItWorksPage() {
                 </div>
               )
             }
-          ].map(s => (
-            <div key={s.step} className="step-card" style={{background:'rgba(255,255,255,.02)',border:`1px solid ${s.border}`,borderRadius:20,padding:'1.5rem',position:'relative',zIndex:1,boxShadow:`0 0 30px ${s.bg}`}}>
+          ].map((s,i)=>(
+            <div key={s.step} className="step-card" style={{background:'rgba(255,255,255,.02)',border:`1px solid ${s.border}`,borderRadius:20,padding:'1.5rem',boxShadow:`0 0 30px ${s.bg}`}}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
                 <div style={{width:40,height:40,borderRadius:11,background:s.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{s.icon}</div>
                 <span style={{fontSize:11,fontWeight:800,color:s.color,letterSpacing:'.1em'}}>{s.step}</span>
@@ -131,7 +133,7 @@ export default function HowItWorksPage() {
         </div>
 
         {/* For candidates vs companies */}
-        <div className="fade-up-2" style={{marginBottom:'5rem'}}>
+        <div className="fade-up-2" style={{marginBottom:'4rem'}}>
           <div style={{textAlign:'center',marginBottom:'2rem'}}>
             <div style={{fontSize:22,fontWeight:800,color:'#fff',letterSpacing:'-.5px',marginBottom:8}}>Built for both sides</div>
             <div style={{fontSize:14,color:'#6b7280'}}>Whether you're looking for a job or looking to hire</div>
@@ -153,7 +155,7 @@ export default function HowItWorksPage() {
             </div>
             <div style={{background:'rgba(16,185,129,.05)',border:'1px solid rgba(16,185,129,.2)',borderRadius:20,padding:'2rem'}}>
               <div style={{fontSize:11,fontWeight:800,color:'#34d399',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:16}}>For Companies</div>
-              {['Post jobs with required skills','AI ranks all candidates by fit score — automatically','See each candidate\'s match reason and skills','Message top candidates directly','Manage applications with shortlist / reject','Track your hiring pipeline in real time'].map(item=>(
+              {['Post jobs with required skills','AI ranks all candidates by fit score automatically','See each candidate\'s match reason and skills','Message top candidates directly','Manage applications with shortlist / reject','Track your hiring pipeline in real time'].map(item=>(
                 <div key={item} style={{display:'flex',alignItems:'flex-start',gap:8,marginBottom:10}}>
                   <span style={{color:'#34d399',fontSize:13,flexShrink:0,marginTop:1}}>✓</span>
                   <span style={{fontSize:13,color:'#9ca3af',lineHeight:1.5}}>{item}</span>
@@ -176,10 +178,10 @@ export default function HowItWorksPage() {
           <div style={{display:'flex',flexDirection:'column',gap:10}}>
             {[
               ['How does AI matching work?','Our AI reads your resume and skills, then scores each job from 0–100 based on semantic similarity — meaning it understands context, not just exact keywords. React experience will match a ReactJS job even if the words differ.'],
-              ['Is HireWise free to use?','Yes — signing up and finding AI matches is completely free for candidates. Companies pay to post jobs and access the candidate ranking features.'],
+              ['Is HireWise free to use?','Yes — signing up and finding AI matches is completely free for candidates. Companies can post jobs and access the candidate ranking features.'],
               ['How accurate is the AI matching?','The match score is a strong signal but not a guarantee. It considers skill overlap, experience level, and role context. We recommend applying to jobs with 70%+ match scores for best results.'],
-              ['Can companies see my profile without me applying?','No — companies can only see your profile after you apply to their job or if they have an active job posting that matches your skills.'],
               ['How is this different from LinkedIn or Naukri?','LinkedIn and Naukri use keyword-based search. HireWise uses semantic AI — it understands what you can do, not just what words appear on your resume. You get ranked results with explanations, not a sea of irrelevant listings.'],
+              ['Can companies see my profile without me applying?','No — companies can only see your profile after you apply to their job posting.'],
             ].map(([q,a])=>(
               <div key={q} className="faq-item" style={{background:'rgba(255,255,255,.02)',border:'1px solid rgba(255,255,255,.07)',borderRadius:14,padding:'1.25rem'}}>
                 <div style={{fontSize:14,fontWeight:700,color:'#f1f1f1',marginBottom:8}}>{q}</div>

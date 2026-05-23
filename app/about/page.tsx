@@ -11,18 +11,33 @@ export default function AboutPage() {
         .fade-up{animation:fadeUp .5s ease forwards}
         .fade-up-1{animation:fadeUp .5s .1s ease both}
         .fade-up-2{animation:fadeUp .5s .2s ease both}
-        .team-card{transition:all .25s}
-        .team-card:hover{border-color:rgba(99,102,241,.4)!important;transform:translateY(-3px)!important}
+        .fade-up-3{animation:fadeUp .5s .3s ease both}
+        .value-card{transition:all .25s}
+        .value-card:hover{border-color:rgba(99,102,241,.35)!important;transform:translateY(-3px)!important}
+        .back-btn{transition:all .2s}
+        .back-btn:hover{color:#e5e7eb!important;border-color:rgba(255,255,255,.2)!important}
+        .cta-btn{transition:all .2s}
+        .cta-btn:hover{transform:translateY(-2px)!important;filter:brightness(1.1)!important}
+        @media(max-width:768px){.values-grid{grid-template-columns:1fr 1fr!important}}
+        @media(max-width:480px){.values-grid{grid-template-columns:1fr!important}}
       `}</style>
 
       <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,pointerEvents:'none',zIndex:0}}>
         <div style={{position:'absolute',top:'-10%',right:'20%',width:500,height:500,background:'radial-gradient(circle,rgba(99,102,241,.05) 0%,transparent 70%)'}}/>
+        <div style={{position:'absolute',bottom:'0',left:'10%',width:400,height:400,background:'radial-gradient(circle,rgba(16,185,129,.03) 0%,transparent 70%)'}}/>
       </div>
 
-      <div style={{maxWidth:900,margin:'0 auto',padding:'4rem 2rem',position:'relative',zIndex:1}}>
+      <div style={{maxWidth:900,margin:'0 auto',padding:'2.5rem 2rem',position:'relative',zIndex:1}}>
+
+        {/* Back button */}
+        <Link href="/" style={{textDecoration:'none'}}>
+          <button className="back-btn" style={{display:'inline-flex',alignItems:'center',gap:6,padding:'7px 14px',background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:9,color:'#9ca3af',fontSize:13,fontWeight:500,cursor:'pointer',fontFamily:'Inter,sans-serif',marginBottom:'2rem'}}>
+            ← Back
+          </button>
+        </Link>
 
         {/* Header */}
-        <div className="fade-up" style={{textAlign:'center',marginBottom:'4rem'}}>
+        <div className="fade-up" style={{textAlign:'center',marginBottom:'3.5rem'}}>
           <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(99,102,241,.1)',border:'1px solid rgba(99,102,241,.25)',borderRadius:999,padding:'5px 14px',fontSize:12,color:'#818cf8',fontWeight:700,marginBottom:16}}>
             ✦ About HireWise
           </div>
@@ -48,14 +63,14 @@ export default function AboutPage() {
         {/* Values */}
         <div className="fade-up-2" style={{marginBottom:'3rem'}}>
           <div style={{fontSize:20,fontWeight:800,color:'#fff',letterSpacing:'-.5px',marginBottom:'1.5rem',textAlign:'center'}}>What we believe in</div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:14}}>
+          <div className="values-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:14}}>
             {[
-              ['🎯','Accuracy over volume','One great match beats 100 irrelevant ones. We optimise for fit, not for engagement.'],
+              ['🎯','Accuracy over volume','One great match beats 100 irrelevant ones. We optimise for fit, not engagement.'],
               ['🔍','Transparency','You should know why you matched a job. We show you the reasons, not just the score.'],
               ['⚡','Speed','The hiring process takes too long. AI can compress weeks of work into seconds.'],
               ['🔒','Privacy','Your resume and data belong to you. We never sell or share your profile.'],
             ].map(([ic,tt,dc])=>(
-              <div key={tt as string} style={{background:'rgba(255,255,255,.02)',border:'1px solid rgba(255,255,255,.07)',borderRadius:16,padding:'1.25rem'}}>
+              <div key={tt as string} className="value-card" style={{background:'rgba(255,255,255,.02)',border:'1px solid rgba(255,255,255,.07)',borderRadius:16,padding:'1.25rem'}}>
                 <div style={{fontSize:22,marginBottom:10}}>{ic as string}</div>
                 <div style={{fontSize:14,fontWeight:700,color:'#f1f1f1',marginBottom:6}}>{tt as string}</div>
                 <div style={{fontSize:13,color:'#6b7280',lineHeight:1.65}}>{dc as string}</div>
@@ -65,12 +80,42 @@ export default function AboutPage() {
         </div>
 
         {/* Tech stack */}
-        <div style={{background:'rgba(255,255,255,.02)',border:'1px solid rgba(255,255,255,.07)',borderRadius:20,padding:'2rem',marginBottom:'3rem'}}>
-          <div style={{fontSize:16,fontWeight:700,color:'#f1f1f1',marginBottom:16}}>Built with</div>
+        <div className="fade-up-2" style={{background:'rgba(255,255,255,.02)',border:'1px solid rgba(255,255,255,.07)',borderRadius:20,padding:'2rem',marginBottom:'3rem'}}>
+          <div style={{fontSize:16,fontWeight:700,color:'#f1f1f1',marginBottom:6}}>Built with</div>
+          <div style={{fontSize:13,color:'#6b7280',marginBottom:16,lineHeight:1.6}}>HireWise is a full-stack web application built with modern, production-grade tools.</div>
           <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-            {[['Next.js','#fff'],['Supabase','#34d399'],['OpenRouter AI','#818cf8'],['TypeScript','#3b82f6'],['Vercel','#fff'],['PostgreSQL','#34d399']].map(([tech,color])=>(
+            {[
+              ['Next.js 14','#fff'],['Supabase','#34d399'],['OpenRouter AI','#818cf8'],
+              ['TypeScript','#3b82f6'],['Vercel','#fff'],['PostgreSQL','#34d399'],
+              ['Tailwind CSS','#06b6d4'],['Lucide Icons','#f59e0b'],
+            ].map(([tech,color])=>(
               <span key={tech} style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:8,fontSize:12,padding:'5px 12px',color,fontWeight:600}}>{tech}</span>
             ))}
+          </div>
+        </div>
+
+        {/* What makes it different */}
+        <div className="fade-up-3" style={{background:'rgba(255,255,255,.02)',border:'1px solid rgba(255,255,255,.07)',borderRadius:20,padding:'2rem',marginBottom:'3rem'}}>
+          <div style={{fontSize:16,fontWeight:700,color:'#f1f1f1',marginBottom:16}}>How it's different from LinkedIn / Naukri</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+            <div>
+              <div style={{fontSize:12,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>Old way</div>
+              {['Keyword-based search only','Apply to 100s of jobs blindly','No explanation for why you matched','Recruiter gatekeeping','Weeks of silence after applying'].map(item=>(
+                <div key={item} style={{display:'flex',alignItems:'flex-start',gap:8,marginBottom:8}}>
+                  <span style={{color:'#f87171',fontSize:13,flexShrink:0}}>✕</span>
+                  <span style={{fontSize:13,color:'#6b7280',lineHeight:1.5}}>{item}</span>
+                </div>
+              ))}
+            </div>
+            <div>
+              <div style={{fontSize:12,fontWeight:700,color:'#34d399',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>HireWise way</div>
+              {['Semantic AI understands context','See only jobs you genuinely fit','Match score + reason for every job','Direct chat with hiring managers','Apply in one click, respond fast'].map(item=>(
+                <div key={item} style={{display:'flex',alignItems:'flex-start',gap:8,marginBottom:8}}>
+                  <span style={{color:'#34d399',fontSize:13,flexShrink:0}}>✓</span>
+                  <span style={{fontSize:13,color:'#9ca3af',lineHeight:1.5}}>{item}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -80,10 +125,14 @@ export default function AboutPage() {
           <div style={{fontSize:13,color:'#6b7280',marginBottom:'1.25rem'}}>Sign up free and see your AI job matches in under 2 minutes.</div>
           <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
             <Link href="/signup">
-              <button style={{padding:'11px 24px',background:'#6366f1',border:'none',borderRadius:10,color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',boxShadow:'0 0 20px rgba(99,102,241,.3)'}}>Get started →</button>
+              <button className="cta-btn" style={{padding:'11px 24px',background:'#6366f1',border:'none',borderRadius:10,color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',boxShadow:'0 0 20px rgba(99,102,241,.3)'}}>
+                Get started →
+              </button>
             </Link>
             <Link href="/how-it-works">
-              <button style={{padding:'11px 24px',background:'transparent',border:'1px solid rgba(255,255,255,.1)',borderRadius:10,color:'#9ca3af',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>How it works</button>
+              <button className="cta-btn" style={{padding:'11px 24px',background:'transparent',border:'1px solid rgba(255,255,255,.1)',borderRadius:10,color:'#9ca3af',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                How it works
+              </button>
             </Link>
           </div>
         </div>
