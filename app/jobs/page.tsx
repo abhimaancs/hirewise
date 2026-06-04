@@ -2,190 +2,9 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import Navbar from '@/components/layout/Navbar'
-import { JobMatch, CandidateProfile, Job } from '@/types'
-import { Loader2, Zap, Briefcase, CheckCircle, Search, FileText, Copy, X, CheckCheck } from 'lucide-react'
+import { JobMatch, CandidateProfile } from '@/types'
+import { Loader2, Zap, Briefcase, CheckCircle, Search } from 'lucide-react'
 
-// ---------------------------------------------------------------------------
-// Cover Letter Modal
-// ---------------------------------------------------------------------------
-function CoverLetterModal({
-  job,
-  letter,
-  loading,
-  error,
-  onClose,
-}: {
-  job: Job
-  letter: string
-  loading: boolean
-  error: string
-  onClose: () => void
-}) {
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = async () => {
-    if (!letter) return
-    await navigator.clipboard.writeText(letter)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  // Close on backdrop click
-  const handleBackdrop = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) onClose()
-  }
-
-  // Close on Escape key
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
-
-  return (
-    <div
-      onClick={handleBackdrop}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '1.5rem',
-      }}
-    >
-      <div style={{
-        width: '100%', maxWidth: 560,
-        background: '#0f0f1a',
-        border: '1px solid rgba(99,102,241,0.3)',
-        borderRadius: 20,
-        boxShadow: '0 0 60px rgba(99,102,241,0.15)',
-        overflow: 'hidden',
-      }}>
-        {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '1rem 1.25rem',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          background: 'rgba(99,102,241,0.08)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 8,
-              background: 'rgba(99,102,241,0.2)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <FileText size={15} color="#818cf8" />
-            </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f1f1' }}>AI Cover Letter</div>
-              <div style={{ fontSize: 11, color: '#6b7280' }}>{job.title}</div>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: '#6b7280', padding: 4, display: 'flex',
-              borderRadius: 6, transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#e5e7eb' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#6b7280' }}
-            aria-label="Close cover letter"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div style={{ padding: '1.25rem', maxHeight: '60vh', overflowY: 'auto' }}>
-          {loading && (
-            <div style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', gap: 14, padding: '3rem 0',
-            }}>
-              <div style={{
-                width: 48, height: 48, borderRadius: 12,
-                background: 'rgba(99,102,241,0.15)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <Loader2 size={22} color="#818cf8" style={{ animation: 'spin 1s linear infinite' }} />
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#e5e7eb', marginBottom: 4 }}>
-                  Claude is writing your letter...
-                </div>
-                <div style={{ fontSize: 12, color: '#6b7280' }}>
-                  Tailored to {job.title} based on your profile
-                </div>
-              </div>
-            </div>
-          )}
-
-          {error && !loading && (
-            <div style={{
-              background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
-              borderRadius: 10, padding: '1rem', color: '#f87171', fontSize: 13,
-            }}>
-              {error}
-            </div>
-          )}
-
-          {letter && !loading && (
-            <div style={{
-              fontSize: 13, color: '#d1d5db', lineHeight: 1.85,
-              whiteSpace: 'pre-wrap',
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: 10, padding: '1rem 1.125rem',
-            }}>
-              {letter}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        {letter && !loading && (
-          <div style={{
-            padding: '0.875rem 1.25rem',
-            borderTop: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex', gap: 8, justifyContent: 'flex-end',
-          }}>
-            <button
-              onClick={onClose}
-              style={{
-                padding: '8px 16px', background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8,
-                color: '#9ca3af', fontSize: 13, cursor: 'pointer',
-                fontFamily: 'Inter,sans-serif', fontWeight: 500,
-              }}
-            >
-              Close
-            </button>
-            <button
-              onClick={handleCopy}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '8px 16px',
-                background: copied ? 'rgba(16,185,129,0.15)' : '#6366f1',
-                border: copied ? '1px solid rgba(16,185,129,0.3)' : 'none',
-                borderRadius: 8,
-                color: copied ? '#34d399' : '#fff',
-                fontSize: 13, cursor: 'pointer',
-                fontFamily: 'Inter,sans-serif', fontWeight: 700,
-                transition: 'all 0.2s',
-              }}
-            >
-              {copied ? <><CheckCheck size={13} /> Copied!</> : <><Copy size={13} /> Copy letter</>}
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Jobs Page
-// ---------------------------------------------------------------------------
 export default function JobsPage() {
   const supabase = createClient()
   const [matches, setMatches] = useState<JobMatch[]>([])
@@ -197,13 +16,6 @@ export default function JobsPage() {
   const [appliedJobs, setAppliedJobs] = useState<string[]>([])
   const [applying, setApplying] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
-
-  // Cover letter state
-  const [clJob, setClJob] = useState<Job | null>(null)       // which job's modal is open
-  const [clLoading, setClLoading] = useState(false)
-  const [clLetter, setClLetter] = useState('')
-  const [clError, setClError] = useState('')
-  const [generatingFor, setGeneratingFor] = useState<string | null>(null) // per-card loading
 
   useEffect(() => { load() }, [])
 
@@ -239,41 +51,6 @@ export default function JobsPage() {
     finally { setApplying(null) }
   }
 
-  const handleGenerateCoverLetter = async (job: Job) => {
-    if (!profile) return
-    setGeneratingFor(job.id)
-    setClJob(job)
-    setClLetter('')
-    setClError('')
-    setClLoading(true)
-
-    try {
-      const res = await fetch('/api/cover-letter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ candidate: profile, job }),
-      })
-      const data = await res.json()
-      if (!res.ok || data.error) {
-        setClError(data.error || 'Generation failed. Please try again.')
-      } else {
-        setClLetter(data.coverLetter)
-      }
-    } catch {
-      setClError('Something went wrong. Please try again.')
-    } finally {
-      setClLoading(false)
-      setGeneratingFor(null)
-    }
-  }
-
-  const closeCoverLetter = () => {
-    setClJob(null)
-    setClLetter('')
-    setClError('')
-    setClLoading(false)
-  }
-
   const filtered = matches.filter(m => {
     if (filter === 'remote') return m.job.job_type === 'remote'
     if (filter === 'internship') return m.job.job_type === 'internship'
@@ -289,18 +66,6 @@ export default function JobsPage() {
   return (
     <>
       <Navbar userRole="candidate" />
-
-      {/* Cover letter modal — rendered at root so it overlays everything */}
-      {clJob && (
-        <CoverLetterModal
-          job={clJob}
-          letter={clLetter}
-          loading={clLoading}
-          error={clError}
-          onClose={closeCoverLetter}
-        />
-      )}
-
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '2rem 1.5rem' }}>
         {profile && (
           <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 14, padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -342,7 +107,6 @@ export default function JobsPage() {
             {filtered.map(({ job, match_score, match_reason }) => {
               const isApplied = appliedJobs.includes(job.id)
               const isApplying = applying === job.id
-              const isGenerating = generatingFor === job.id
               const initial = job.title[0].toUpperCase()
               const color = colors[initial] || '#6366f1'
               return (
@@ -362,57 +126,15 @@ export default function JobsPage() {
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 14 }}>
                     {job.required_skills?.slice(0, 4).map((s: string) => <span key={s} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#9ca3af', borderRadius: 7, fontSize: 11, padding: '3px 8px', fontWeight: 500 }}>{s}</span>)}
                   </div>
-
-                  {/* Action row */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: '#818cf8', letterSpacing: '-0.3px', flexShrink: 0 }}>{job.salary_range || 'Salary not listed'}</span>
-                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                      {/* Cover letter button — only shown when profile has skills */}
-                      {profile && (
-                        <button
-                          onClick={() => handleGenerateCoverLetter(job)}
-                          disabled={isGenerating}
-                          title="Generate AI cover letter"
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 5,
-                            padding: '8px 12px', borderRadius: 9,
-                            border: '1px solid rgba(99,102,241,0.3)',
-                            background: 'rgba(99,102,241,0.1)',
-                            color: '#818cf8', fontSize: 12, fontWeight: 600,
-                            cursor: isGenerating ? 'not-allowed' : 'pointer',
-                            fontFamily: 'Inter,sans-serif',
-                            opacity: isGenerating ? 0.7 : 1,
-                            transition: 'all 0.2s',
-                          }}
-                          onMouseEnter={e => { if (!isGenerating) (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.2)' }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.1)' }}
-                          aria-label={`Generate cover letter for ${job.title}`}
-                        >
-                          {isGenerating
-                            ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
-                            : <FileText size={12} />
-                          }
-                          {isGenerating ? 'Writing...' : 'Cover letter'}
-                        </button>
-                      )}
-
-                      {/* Apply button */}
-                      <button
-                        onClick={() => handleApply(job.id)}
-                        disabled={isApplied || isApplying}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 5,
-                          padding: '8px 16px', borderRadius: 9, border: 'none',
-                          background: isApplied ? 'rgba(16,185,129,0.15)' : '#6366f1',
-                          color: isApplied ? '#34d399' : '#fff',
-                          fontSize: 13, fontWeight: 700,
-                          cursor: isApplied ? 'default' : 'pointer',
-                          fontFamily: 'Inter,sans-serif',
-                        }}
-                      >
-                        {isApplying ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : isApplied ? <><CheckCircle size={13} />Applied</> : 'Apply →'}
-                      </button>
-                    </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#818cf8', letterSpacing: '-0.3px' }}>{job.salary_range || 'Salary not listed'}</span>
+                    <button
+                      onClick={() => handleApply(job.id)}
+                      disabled={isApplied || isApplying}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 16px', borderRadius: 9, border: 'none', background: isApplied ? 'rgba(16,185,129,0.15)' : '#6366f1', color: isApplied ? '#34d399' : '#fff', fontSize: 13, fontWeight: 700, cursor: isApplied ? 'default' : 'pointer', fontFamily: 'Inter,sans-serif' }}
+                    >
+                      {isApplying ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : isApplied ? <><CheckCircle size={13} />Applied</> : 'Apply →'}
+                    </button>
                   </div>
                 </div>
               )
