@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import Navbar from '@/components/layout/Navbar'
-import { Plus, X, Loader2, CheckCircle, Upload, TrendingUp, AlertCircle } from 'lucide-react'
+import { Plus, X, Loader2, CheckCircle, Upload, TrendingUp, FileText, ExternalLink } from 'lucide-react'
 
 export default function ProfilePage() {
   const supabase = createClient()
@@ -11,10 +11,15 @@ export default function ProfilePage() {
   const [newSkill, setNewSkill] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [parsing, setParsing] = useState(false)
-  const [parseError, setParseError] = useState('')
   const [saved, setSaved] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
+
+  // Resume upload state
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const [uploadSuccess, setUploadSuccess] = useState(false)
+  const [resumeUrl, setResumeUrl] = useState<string | null>(null)
+  const [resumeFileName, setResumeFileName] = useState<string | null>(null)
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -32,6 +37,13 @@ export default function ProfilePage() {
       const { data: c } = await supabase.from('candidate_profiles').select('*').eq('id', uid).single()
       setProfile({ ...p, ...c })
       setSkills(c?.skills || [])
+      // Restore existing resume URL if present
+      if (c?.resume_url) {
+        setResumeUrl(c.resume_url)
+        // Extract the filename from the URL for display
+        const parts = c.resume_url.split('/')
+        setResumeFileName(decodeURIComponent(parts[parts.length - 1]))
+      }
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
   }
@@ -48,45 +60,56 @@ export default function ProfilePage() {
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !userId) return
 
-    // Reset input so the same file can be re-uploaded if needed
+    // Reset input so the same file can be re-selected
     e.target.value = ''
 
-    setParsing(true)
-    setParseError('')
+    setUploading(true)
+    setUploadError('')
+    setUploadSuccess(false)
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
+      const filePath = `${userId}/resume.pdf`
 
-      const res = await fetch('/api/parse-resume', { method: 'POST', body: formData })
-      const json = await res.json()
+      // Upload to Supabase Storage — upsert so re-uploads overwrite cleanly
+      const { error: storageError } = await supabase.storage
+        .from('resumes')
+        .upload(filePath, file, { upsert: true, contentType: 'application/pdf' })
 
-      if (!res.ok || json.error) {
-        setParseError(json.error || 'Failed to parse resume. Please try again.')
+      if (storageError) {
+        setUploadError('Upload failed: ' + storageError.message)
         return
       }
 
-      const { data, resumeText } = json
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('resumes')
+        .getPublicUrl(filePath)
 
-      if (data) {
-        setProfile((prev: any) => ({ ...prev, bio: data.bio, experience_years: data.experience_years }))
-        if (data.skills?.length) setSkills(data.skills)
+      const publicUrl = urlData.publicUrl
+
+      // Persist URL to candidate_profiles.resume_url
+      const { error: dbError } = await supabase
+        .from('candidate_profiles')
+        .update({ resume_url: publicUrl })
+        .eq('id', userId)
+
+      if (dbError) {
+        setUploadError('Saved to storage but failed to update profile: ' + dbError.message)
+        return
       }
 
-      // Persist the raw extracted text to candidate_profiles.resume_text
-      if (userId && resumeText) {
-        await supabase
-          .from('candidate_profiles')
-          .update({ resume_text: resumeText })
-          .eq('id', userId)
-      }
-    } catch (err) {
-      console.error(err)
-      setParseError('Something went wrong. Please try again.')
+      setResumeUrl(publicUrl)
+      setResumeFileName(file.name)
+      setUploadSuccess(true)
+      setTimeout(() => setUploadSuccess(false), 3000)
+
+    } catch (err: any) {
+      console.error('Resume upload error:', err)
+      setUploadError('Something went wrong. Please try again.')
     } finally {
-      setParsing(false)
+      setUploading(false)
     }
   }
 
@@ -100,9 +123,17 @@ export default function ProfilePage() {
     setSaving(true)
     try {
       await supabase.from('profiles').update({ name: profile.name }).eq('id', userId)
-      const { error } = await supabase.from('candidate_profiles').upsert({ id: userId, college: profile.college || '', skills, experience_years: profile.experience_years || 0, bio: profile.bio || '', location: profile.location || '' })
+      const { error } = await supabase.from('candidate_profiles').upsert({
+        id: userId,
+        college: profile.college || '',
+        skills,
+        experience_years: profile.experience_years || 0,
+        bio: profile.bio || '',
+        location: profile.location || ''
+      })
       if (error) throw error
-      setSaved(true); setTimeout(() => setSaved(false), 2500)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
     } catch (err) { console.error(err); alert('Failed to save') }
     finally { setSaving(false) }
   }
@@ -139,6 +170,7 @@ export default function ProfilePage() {
         <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 14 }}>
           {/* Sidebar */}
           <div>
+            {/* Profile card */}
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '1.25rem', marginBottom: 12, textAlign: 'center' }}>
               <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', margin: '0 auto 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 26, fontWeight: 800 }}>
                 {profile.name?.[0]?.toUpperCase() || 'U'}
@@ -156,34 +188,62 @@ export default function ProfilePage() {
               <div style={{ fontSize: 11, color: '#4b5563', marginTop: 6 }}>{s}% complete</div>
             </div>
 
-            {/* Upload widget */}
-            <label style={{ display: 'block', background: 'rgba(255,255,255,0.02)', border: `1px dashed ${parseError ? 'rgba(239,68,68,0.4)' : 'rgba(99,102,241,0.3)'}`, borderRadius: 14, padding: '1.25rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.06)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)' }}
-            >
-              {parsing
-                ? <Loader2 size={22} color="#818cf8" style={{ animation: 'spin 1s linear infinite', margin: '0 auto 8px' }} />
-                : <Upload size={22} color={parseError ? '#f87171' : '#818cf8'} style={{ margin: '0 auto 8px' }} />
-              }
-              <div style={{ fontSize: 13, fontWeight: 700, color: parseError ? '#f87171' : '#818cf8', marginBottom: 3 }}>
-                {parsing ? 'AI reading...' : 'Upload Resume'}
-              </div>
-              <div style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.5 }}>
-                PDF or TXT — AI extracts your skills automatically
-              </div>
-              <input type="file" accept=".pdf,.txt" onChange={handleResumeUpload} style={{ display: 'none' }} />
-            </label>
+            {/* Resume upload widget */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '1.25rem' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Resume</div>
 
-            {/* Parse error message */}
-            {parseError && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 8, padding: '8px 10px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 9 }}>
-                <AlertCircle size={13} color="#f87171" style={{ flexShrink: 0, marginTop: 1 }} />
-                <span style={{ fontSize: 11, color: '#f87171', lineHeight: 1.5 }}>{parseError}</span>
-              </div>
-            )}
+              {/* Existing resume — filename + view link */}
+              {resumeUrl && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 10px', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 9, marginBottom: 10 }}>
+                  <FileText size={13} color="#818cf8" style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, color: '#a5b4fc', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {resumeFileName || 'resume.pdf'}
+                  </span>
+                  <a
+                    href={resumeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 700, color: '#818cf8', textDecoration: 'none', flexShrink: 0 }}
+                  >
+                    View <ExternalLink size={10} />
+                  </a>
+                </div>
+              )}
+
+              {/* Upload button */}
+              <label style={{ display: 'block', border: `1px dashed ${uploadError ? 'rgba(239,68,68,0.4)' : uploadSuccess ? 'rgba(16,185,129,0.4)' : 'rgba(99,102,241,0.3)'}`, borderRadius: 10, padding: '0.9rem', cursor: uploading ? 'not-allowed' : 'pointer', textAlign: 'center', transition: 'all 0.2s' }}
+                onMouseEnter={e => { if (!uploading) (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.06)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+              >
+                {uploading
+                  ? <Loader2 size={18} color="#818cf8" style={{ animation: 'spin 1s linear infinite', margin: '0 auto 6px' }} />
+                  : uploadSuccess
+                    ? <CheckCircle size={18} color="#34d399" style={{ margin: '0 auto 6px' }} />
+                    : <Upload size={18} color={uploadError ? '#f87171' : '#818cf8'} style={{ margin: '0 auto 6px' }} />
+                }
+                <div style={{ fontSize: 12, fontWeight: 700, color: uploadError ? '#f87171' : uploadSuccess ? '#34d399' : '#818cf8' }}>
+                  {uploading ? 'Uploading...' : uploadSuccess ? 'Uploaded!' : resumeUrl ? 'Replace resume' : 'Upload resume'}
+                </div>
+                <div style={{ fontSize: 11, color: '#4b5563', marginTop: 3 }}>PDF only</div>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleResumeUpload}
+                  disabled={uploading}
+                  style={{ display: 'none' }}
+                />
+              </label>
+
+              {/* Upload error */}
+              {uploadError && (
+                <div style={{ marginTop: 8, padding: '7px 10px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, fontSize: 11, color: '#f87171', lineHeight: 1.5 }}>
+                  {uploadError}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Main */}
+          {/* Main form */}
           <div>
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '1.25rem', marginBottom: 12 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f1f1', marginBottom: 16, letterSpacing: '-0.2px' }}>Basic Info</div>
