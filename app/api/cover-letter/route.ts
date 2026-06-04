@@ -1,19 +1,10 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: NextRequest) {
   try {
     const { candidate, job } = await req.json()
 
-    const message = await anthropic.messages.create({
-      model: 'claude-opus-4-6',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: `Write a professional, concise cover letter for this candidate applying to this job.
+    const prompt = `Write a professional, concise cover letter for this candidate applying to this job.
 
 CANDIDATE:
 Name: ${candidate.name}
@@ -34,17 +25,32 @@ Write a 3-paragraph cover letter:
 3. Closing — call to action, professional sign-off
 
 Tone: professional but human. Not generic. Max 200 words. Start directly with "Dear Hiring Manager,"`
-        }
-      ]
+
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://hirewise-henna.vercel.app',
+        'X-Title': 'HireWise'
+      },
+      body: JSON.stringify({
+        model: 'anthropic/claude-3.5-sonnet',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.4
+      })
     })
 
-    const content = message.content[0]
-    if (content.type !== 'text') throw new Error('Unexpected response')
+    if (!res.ok) throw new Error(`OpenRouter ${res.status}: ${await res.text()}`)
 
-    return NextResponse.json({ coverLetter: content.text })
+    const data = await res.json()
+    const text = data?.choices?.[0]?.message?.content
+    if (!text) throw new Error('Empty response from OpenRouter')
 
-  } catch (error) {
-    console.error('Cover letter error:', error)
+    return NextResponse.json({ coverLetter: text })
+
+  } catch (error: any) {
+    console.error('Cover letter error:', error?.message)
     return NextResponse.json({ error: 'Generation failed' }, { status: 500 })
   }
 }
