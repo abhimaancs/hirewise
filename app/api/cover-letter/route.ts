@@ -35,7 +35,7 @@ Tone: professional but human. Not generic. Max 200 words. Start directly with "D
         'X-Title': 'HireWise'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: 'mistralai/mistral-7b-instruct',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.4
       })
