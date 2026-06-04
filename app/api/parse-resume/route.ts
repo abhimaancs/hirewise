@@ -1,8 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
 import { getDocumentProxy, extractText } from 'unpdf'
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,7 +20,7 @@ export async function POST(req: NextRequest) {
       const { text } = await extractText(pdf, { mergePages: true })
       resumeText = text
     } else {
-      // Plain text — read directly, same as before
+      // Plain text — read directly
       resumeText = await file.text()
     }
 
@@ -31,13 +28,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Could not extract text from file' }, { status: 400 })
     }
 
-    const message = await anthropic.messages.create({
-      model: 'claude-opus-4-6',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: `Extract structured information from this resume. Return ONLY valid JSON, no markdown.
+    const prompt = `Extract structured information from this resume. Return ONLY valid JSON, no markdown.
 
 Resume:
 ${resumeText}
@@ -51,16 +42,48 @@ Return this exact JSON structure:
   "bio": "2-sentence professional summary",
   "location": "city, country"
 }`
-        }
-      ]
+
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://hirewise-henna.vercel.app',
+        'X-Title': 'HireWise'
+      },
+      body: JSON.stringify({
+        model: 'mistralai/mistral-7b-instruct',
+        messages: [
+          { role: 'system', content: 'You return ONLY valid JSON objects. No markdown, no explanation.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.1
+      })
     })
 
-    const content = message.content[0]
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type')
+    const data = await res.json()
+    console.log('parse-resume OpenRouter status:', res.status)
+
+    const text = data?.choices?.[0]?.message?.content || ''
+    console.log('parse-resume AI text:', text)
+
+    // Parse response — with markdown-stripping fallback
+    let parsed: any
+    try {
+      parsed = JSON.parse(text)
+    } catch {
+      try {
+        parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
+      } catch {
+        const match = text.match(/\{[\s\S]*\}/)
+        if (match) parsed = JSON.parse(match[0])
+      }
     }
 
-    const parsed = JSON.parse(content.text)
+    if (!parsed) {
+      throw new Error('Could not parse AI response as JSON')
+    }
+
     // Return parsed fields plus the raw extracted text so the client can
     // persist it to candidate_profiles.resume_text
     return NextResponse.json({ data: parsed, resumeText })
