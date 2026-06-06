@@ -68,8 +68,7 @@ export interface Application {
 
 /** Application enriched with job and company data (used on the applications page) */
 export interface EnrichedApplication extends Application {
-  job: Job | null
-  company: Pick<Profile, 'name'> | null
+  job: (Job & { company: Pick<Profile, 'name'> | null }) | null
 }
 
 /** An applicant row as loaded on the company candidates page */

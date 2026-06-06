@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import Navbar from '@/components/layout/Navbar'
-import { EnrichedApplication, Application, ApplicationStatus, StatusConfig } from '@/types'
+import { EnrichedApplication, ApplicationStatus, StatusConfig } from '@/types'
 import { Loader2, Briefcase, MessageSquare, CheckCircle, Clock, XCircle, X } from 'lucide-react'
 
 export default function ApplicationsPage() {
@@ -29,20 +29,20 @@ export default function ApplicationsPage() {
 
   const loadApplications = async (uid: string) => {
     try {
-      const { data: apps } = await supabase
+      const { data: enriched } = await supabase
         .from('applications')
-        .select('*')
+        .select(`
+          *,
+          job:jobs (
+            id, company_id, title, description,
+            required_skills, location, salary_range,
+            job_type, is_active, created_at,
+            company:profiles ( name )
+          )
+        `)
         .eq('candidate_id', uid)
         .order('applied_at', { ascending: false })
-      if (!apps?.length) { setLoading(false); return }
-      const enriched = await Promise.all(apps.map(async (app: Application) => {
-        const { data: job } = await supabase.from('jobs').select('*').eq('id', app.job_id).single()
-        const { data: company } = job
-          ? await supabase.from('profiles').select('name').eq('id', job.company_id).single()
-          : { data: null }
-        return { ...app, job: job || null, company: company || null } as EnrichedApplication
-      }))
-      setApplications(enriched)
+      setApplications((enriched ?? []) as EnrichedApplication[])
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
   }
@@ -194,7 +194,7 @@ export default function ApplicationsPage() {
                     </div>
 
                     <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>
-                      {app.company?.name && `${app.company.name} · `}
+                      {app.job?.company?.name && `${app.job.company.name} · `}
                       {app.job?.location && `${app.job.location} · `}
                       {app.job?.job_type}
                       {app.job?.salary_range && ` · ${app.job.salary_range}`}
