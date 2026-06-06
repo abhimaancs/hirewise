@@ -242,6 +242,14 @@ export default function JobDetailPage() {
         <>
             <Navbar userRole="candidate" />
 
+            {/* Responsive styles */}
+            <style>{`
+                @media (max-width: 768px) {
+                    .job-detail-grid { grid-template-columns: 1fr !important; }
+                    .job-detail-sidebar { position: static !important; top: auto !important; }
+                }
+            `}</style>
+
             {/* Subtle background glow */}
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 0 }}>
                 <div style={{ position: 'absolute', top: '-5%', right: '5%', width: 600, height: 600, background: `radial-gradient(circle, ${accentColor}08 0%, transparent 70%)` }} />
@@ -257,7 +265,7 @@ export default function JobDetailPage() {
                     <ArrowLeft size={14} /> Back
                 </button>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 16, alignItems: 'start' }}>
+                <div className="job-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 16, alignItems: 'start' }}>
 
                     {/* ── LEFT COLUMN ── */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -347,7 +355,7 @@ export default function JobDetailPage() {
                     </div>
 
                     {/* ── RIGHT COLUMN ── */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'sticky', top: '1.5rem' }}>
+                    <div className="job-detail-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'sticky', top: '1.5rem' }}>
 
                         {/* Apply / status card */}
                         <div style={{ ...card, padding: '1.25rem' }}>

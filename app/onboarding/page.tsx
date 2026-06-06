@@ -14,7 +14,7 @@ function OnboardingContent() {
     { num: 3, icon: '🤖', title: 'Find top candidates', desc: 'AI ranks the best candidates for your role', href: '/company/candidates' },
   ] : [
     { num: 1, icon: '👤', title: 'Complete your profile', desc: 'Add your skills, college and bio', href: '/profile' },
-    { num: 2, icon: '📄', title: 'Upload your resume', desc: 'AI will extract your skills automatically', href: '/profile' },
+    { num: 2, icon: '📄', title: 'Upload your resume', desc: 'Upload your PDF resume so companies can view it directly', href: '/profile' },
     { num: 3, icon: '✨', title: 'Browse AI matches', desc: 'See jobs ranked by your fit score', href: '/jobs' },
   ]
 
