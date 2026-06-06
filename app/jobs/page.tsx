@@ -1,12 +1,14 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Navbar from '@/components/layout/Navbar'
 import { JobMatch, CandidateProfile } from '@/types'
-import { Loader2, Zap, Briefcase, CheckCircle, Search, X } from 'lucide-react'
+import { Loader2, Zap, Briefcase, CheckCircle, Search, X, ExternalLink } from 'lucide-react'
 
 export default function JobsPage() {
   const supabase = createClient()
+  const router = useRouter()
   const [matches, setMatches] = useState<JobMatch[]>([])
   const [loading, setLoading] = useState(true)
   const [matching, setMatching] = useState(false)
@@ -196,7 +198,8 @@ export default function JobsPage() {
               return (
                 <div
                   key={job.id}
-                  style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${isApplied ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 18, padding: '1.25rem', transition: 'all 0.25s' }}
+                  onClick={() => router.push(`/jobs/${job.id}`)}
+                  style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${isApplied ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 18, padding: '1.25rem', transition: 'all 0.25s', cursor: 'pointer' }}
                   onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'rgba(99,102,241,0.35)'; el.style.background = 'rgba(255,255,255,0.05)'; el.style.transform = 'translateY(-2px)' }}
                   onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = isApplied ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.07)'; el.style.background = 'rgba(255,255,255,0.03)'; el.style.transform = 'none' }}
                 >
@@ -221,7 +224,7 @@ export default function JobsPage() {
 
                     {/* Inline withdraw confirmation */}
                     {showConfirm ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 9, padding: '5px 10px' }}>
+                      <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 9, padding: '5px 10px' }}>
                         <span style={{ fontSize: 11, color: '#f87171', fontWeight: 600 }}>Withdraw?</span>
                         <button
                           onClick={() => handleWithdraw(job.id)}
@@ -237,7 +240,7 @@ export default function JobsPage() {
                         </button>
                       </div>
                     ) : isApplied ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         {/* Applied badge */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 9, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', color: '#34d399', fontSize: 12, fontWeight: 700 }}>
                           {isWithdrawing
@@ -258,7 +261,7 @@ export default function JobsPage() {
                       </div>
                     ) : (
                       <button
-                        onClick={() => handleApply(job.id)}
+                        onClick={e => { e.stopPropagation(); handleApply(job.id) }}
                         disabled={isApplying}
                         style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 16px', borderRadius: 9, border: 'none', background: '#6366f1', color: '#fff', fontSize: 13, fontWeight: 700, cursor: isApplying ? 'not-allowed' : 'pointer', fontFamily: 'Inter,sans-serif', opacity: isApplying ? 0.7 : 1 }}
                       >
@@ -267,6 +270,13 @@ export default function JobsPage() {
                           : 'Apply →'}
                       </button>
                     )}
+                  </div>
+
+                  {/* View details link */}
+                  <div style={{ marginTop: 10, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+                    <span style={{ fontSize: 11, color: '#4b5563', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      View details <ExternalLink size={10} />
+                    </span>
                   </div>
                 </div>
               )
