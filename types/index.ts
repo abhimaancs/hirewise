@@ -1,5 +1,7 @@
 export type UserRole = 'candidate' | 'company'
 
+export type ApplicationStatus = 'applied' | 'shortlisted' | 'rejected'
+
 export interface Profile {
   id: string
   user_id: string
@@ -16,9 +18,15 @@ export interface CandidateProfile extends Profile {
   skills: string[]
   experience_years: number
   resume_url?: string
-  resume_text?: string        // extracted by Claude
+  resume_text?: string
   bio?: string
   location?: string
+}
+
+/** Minimal company info returned from a profiles table join */
+export interface CompanyInfo {
+  name: string
+  email: string
 }
 
 export interface CompanyProfile extends Profile {
@@ -45,8 +53,67 @@ export interface Job {
 
 export interface JobMatch {
   job: Job
-  match_score: number           // 0–100, computed by Claude
-  match_reason: string          // AI explanation of why it matched
+  match_score: number
+  match_reason: string
+}
+
+/** A raw application row from the applications table */
+export interface Application {
+  id: string
+  candidate_id: string
+  job_id: string
+  status: ApplicationStatus
+  applied_at: string
+}
+
+/** Application enriched with job and company data (used on the applications page) */
+export interface EnrichedApplication extends Application {
+  job: Job | null
+  company: Pick<Profile, 'name'> | null
+}
+
+/** An applicant row as loaded on the company candidates page */
+export interface EnrichedApplicant extends Application {
+  candidate: Profile | null
+  candidate_details: CandidateProfile | null
+}
+
+/** A candidate match result as returned by /api/match-candidates */
+export interface CandidateMatch {
+  job: CandidateProfile   // named 'job' by the API response shape — holds candidate data
+  match_score: number
+  match_reason: string
+}
+
+/** Profile form state on the candidate profile page */
+export interface ProfileForm {
+  name?: string
+  college?: string
+  bio?: string
+  location?: string
+  experience_years?: number
+  skills?: string[]
+  resume_url?: string
+}
+
+/** Status badge config used in the applications and candidates pages */
+export interface StatusStyle {
+  bg: string
+  color: string
+  border: string
+}
+
+/** Status badge config with label and icon (applications page) */
+export interface StatusConfig extends StatusStyle {
+  icon: React.ReactNode
+  label: string
+}
+
+/** A single nav link entry used in the mobile drawer */
+export interface NavLink {
+  href: string
+  label: string
+  icon?: React.ReactNode
 }
 
 export interface Message {

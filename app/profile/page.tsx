@@ -2,11 +2,12 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import Navbar from '@/components/layout/Navbar'
+import { ProfileForm } from '@/types'
 import { Plus, X, Loader2, CheckCircle, Upload, TrendingUp, FileText, ExternalLink } from 'lucide-react'
 
 export default function ProfilePage() {
   const supabase = createClient()
-  const [profile, setProfile] = useState<any>({})
+  const [profile, setProfile] = useState<ProfileForm>({})
   const [skills, setSkills] = useState<string[]>([])
   const [newSkill, setNewSkill] = useState('')
   const [loading, setLoading] = useState(true)

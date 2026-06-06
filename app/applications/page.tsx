@@ -2,13 +2,14 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import Navbar from '@/components/layout/Navbar'
+import { EnrichedApplication, Application, ApplicationStatus, StatusConfig } from '@/types'
 import { Loader2, Briefcase, MessageSquare, CheckCircle, Clock, XCircle, X } from 'lucide-react'
 
 export default function ApplicationsPage() {
   const supabase = createClient()
-  const [applications, setApplications] = useState<any[]>([])
+  const [applications, setApplications] = useState<EnrichedApplication[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'all' | 'applied' | 'shortlisted' | 'rejected'>('all')
+  const [filter, setFilter] = useState<'all' | ApplicationStatus>('all')
   const [userId, setUserId] = useState<string | null>(null)
   const [startingChat, setStartingChat] = useState<string | null>(null)
 
@@ -34,12 +35,12 @@ export default function ApplicationsPage() {
         .eq('candidate_id', uid)
         .order('applied_at', { ascending: false })
       if (!apps?.length) { setLoading(false); return }
-      const enriched = await Promise.all(apps.map(async (app: any) => {
+      const enriched = await Promise.all(apps.map(async (app: Application) => {
         const { data: job } = await supabase.from('jobs').select('*').eq('id', app.job_id).single()
         const { data: company } = job
           ? await supabase.from('profiles').select('name').eq('id', job.company_id).single()
           : { data: null }
-        return { ...app, job: job || null, company: company || null }
+        return { ...app, job: job || null, company: company || null } as EnrichedApplication
       }))
       setApplications(enriched)
     } catch (err) { console.error(err) }
@@ -93,7 +94,7 @@ export default function ApplicationsPage() {
 
   const filtered = applications.filter(a => filter === 'all' || a.status === filter)
 
-  const statusConfig: any = {
+  const statusConfig: Record<ApplicationStatus, StatusConfig> = {
     applied: { icon: <Clock size={12} />, bg: 'rgba(99,102,241,0.12)', color: '#818cf8', border: 'rgba(99,102,241,0.25)', label: 'Applied' },
     shortlisted: { icon: <CheckCircle size={12} />, bg: 'rgba(16,185,129,0.12)', color: '#34d399', border: 'rgba(16,185,129,0.25)', label: 'Shortlisted' },
     rejected: { icon: <XCircle size={12} />, bg: 'rgba(239,68,68,0.12)', color: '#f87171', border: 'rgba(239,68,68,0.25)', label: 'Rejected' },
@@ -163,7 +164,7 @@ export default function ApplicationsPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {filtered.map((app: any) => {
+            {filtered.map((app: EnrichedApplication) => {
               const status = statusConfig[app.status]
               const canWithdraw = app.status === 'applied'
               const isWithdrawing = withdrawing === app.id

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { LogOut, User, Search, Briefcase, MessageSquare, LayoutDashboard, X, Menu } from 'lucide-react'
+import { NavLink } from '@/types'
 
 interface NavbarProps {
   userRole?: 'candidate' | 'company' | null
@@ -350,7 +351,7 @@ export default function Navbar({ userRole }: NavbarProps) {
 
         {/* Nav links */}
         <div style={{ padding: '12px 12px 0', flex: 1 }}>
-          {activeLinks.map(({ href, label, icon }: any) => (
+          {activeLinks.map(({ href, label, icon }: NavLink) => (
             <Link
               key={href}
               href={href}

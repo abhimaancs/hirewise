@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Navbar from '@/components/layout/Navbar'
-import { Job, CandidateProfile } from '@/types'
+import { Job, CandidateProfile, CompanyInfo } from '@/types'
 import {
     Loader2, ArrowLeft, MapPin, Briefcase, DollarSign,
     Calendar, CheckCircle, X, Zap, Users
@@ -33,7 +33,7 @@ export default function JobDetailPage() {
 
     // Data
     const [job, setJob] = useState<Job | null>(null)
-    const [company, setCompany] = useState<any>(null)
+    const [company, setCompany] = useState<CompanyInfo | null>(null)
     const [profile, setProfile] = useState<CandidateProfile | null>(null)
     const [userId, setUserId] = useState<string | null>(null)
 
